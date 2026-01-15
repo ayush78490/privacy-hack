@@ -1,3 +1,9 @@
+# IDE
+.vscode/
+
+# Local build logs
+android/*.txt
+
 # OSX
 #
 .DS_Store

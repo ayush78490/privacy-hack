@@ -2,9 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-brand-orange: #FF611A;
+  --color-brand-orange-light: #FF8A50;
+  --color-brand-dark: #262626;
+  --color-brand-darker: #1a1a1a;
+  --color-brand-darkest: #121212;
+}
+
 @layer base {
   body {
-    @apply bg-obsidian font-display text-white antialiased;
+    @apply bg-[#121212] font-display text-white antialiased;
     min-height: max(884px, 100dvh);
   }
 }
@@ -18,14 +26,14 @@
 }
 
 .glass-panel {
-  background: rgba(20, 20, 25, 0.6);
+  background: rgba(26, 26, 26, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(38, 38, 38, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -42,12 +50,30 @@
 }
 
 .input-glow:focus-within {
-  box-shadow: inset 0 0 20px rgba(139, 92, 246, 0.05);
+  box-shadow: inset 0 0 20px rgba(255, 97, 26, 0.1);
 }
 
 .glass-input {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(38, 38, 38, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Orange gradient for buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #FF611A 0%, #FF8A50 100%);
+  box-shadow: 0 0 20px rgba(255, 97, 26, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 30px rgba(255, 97, 26, 0.5);
+}
+
+/* Text gradients */
+.text-gradient-orange {
+  background: linear-gradient(135deg, #FF611A 0%, #FF8A50 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

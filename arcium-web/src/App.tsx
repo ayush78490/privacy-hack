@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Activity from './pages/Activity';
 import Swap from './pages/Swap';
 import Send from './pages/Send';
+import Receive from './pages/Receive';
 import CreateWallet from './pages/CreateWallet';
 import ConfirmWallet from './pages/ConfirmWallet';
 import Profile from './pages/Profile';
@@ -22,6 +23,7 @@ function App() {
           <Route path="/activity" component={Activity} />
           <Route path="/swap" component={Swap} />
           <Route path="/send" component={Send} />
+          <Route path="/receive" component={Receive} />
           <Route path="/profile" component={Profile} />
           <Route path="/import-wallet" component={ImportWallet} />
           <Route path="/create-wallet" component={CreateWallet} />

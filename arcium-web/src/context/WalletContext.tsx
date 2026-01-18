@@ -17,6 +17,14 @@ interface TokenBalance {
 interface WalletContextType {
     wallet: Keypair | null;
     address: string | null;
+    // On-chain balances (from RPC)
+    onChainBalance: number;
+    onChainUsdcBalance: number;
+    // Shielded balances (from ShadowWire API)
+    shieldedBalance: number;
+    shieldedUsdcBalance: number;
+    shieldedTokenBalances: TokenBalance[];
+    // Combined for backward compatibility
     balance: number;
     usdcBalance: number;
     tokenBalances: TokenBalance[];
@@ -33,16 +41,22 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [wallet, setWallet] = useState<Keypair | null>(null);
     const [address, setAddress] = useState<string | null>(null);
-    const [balance, setBalance] = useState<number>(0);
-    const [usdcBalance, setUsdcBalance] = useState<number>(0);
-    const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
+
+    // On-chain balances (from RPC)
+    const [onChainBalance, setOnChainBalance] = useState<number>(0);
+    const [onChainUsdcBalance, setOnChainUsdcBalance] = useState<number>(0);
+
+    // Shielded balances (from ShadowWire API)
+    const [shieldedBalance, setShieldedBalance] = useState<number>(0);
+    const [shieldedUsdcBalance, setShieldedUsdcBalance] = useState<number>(0);
+    const [shieldedTokenBalances, setShieldedTokenBalances] = useState<TokenBalance[]>([]);
+
     const [tokens, setTokens] = useState<api.Token[]>([]);
     const [loading, setLoading] = useState(true);
     const [mnemonic, setMnemonic] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [apiConnected, setApiConnected] = useState(false);
 
-    // Use a ref to track if we're currently refreshing to avoid overlaps
     const isRefreshing = useRef(false);
 
     // Check API connection and fetch tokens on mount
@@ -54,14 +68,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     console.log('[WalletContext] API connected:', health);
                     setApiConnected(true);
 
-                    // Fetch supported tokens
                     const tokenList = await api.getTokens();
                     if (tokenList.length > 0) {
                         setTokens(tokenList);
                         console.log('[WalletContext] Loaded tokens:', tokenList.length);
                     }
                 } else {
-                    console.warn('[WalletContext] API not available, using fallback RPC');
+                    console.warn('[WalletContext] API not available');
                     setApiConnected(false);
                 }
             } catch (err) {
@@ -73,7 +86,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, []);
 
     const refreshBalance = useCallback(async () => {
-        // Ensure we have an address in STATE
         if (!address) {
             console.log('[WalletContext] refreshBalance skipped: No address in state');
             return;
@@ -87,22 +99,30 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             setError(null);
 
+            // Always fetch on-chain balances from RPC
+            console.log('[WalletContext] Fetching on-chain balances from RPC...');
+            const [solBal, usdcBal] = await Promise.all([
+                fetchSolBalance(address),
+                fetchTokenBalance(address, USDC_MINT),
+            ]);
+            console.log('[WalletContext] On-chain balances:', { solBal, usdcBal });
+            setOnChainBalance(solBal);
+            setOnChainUsdcBalance(usdcBal);
+
+            // Fetch shielded balances from ShadowWire API
             if (apiConnected) {
-                // Try ShadowWire API first
-                console.log('[WalletContext] Fetching balances from ShadowWire API...');
+                console.log('[WalletContext] Fetching shielded balances from API...');
                 const balancesResult = await api.getBalances(address);
 
                 if (balancesResult && balancesResult.balances) {
                     const balances = balancesResult.balances;
 
-                    // Find SOL and USDC from the response
                     const solBalance = balances.find(b => b.token === 'SOL');
                     const usdcBalanceData = balances.find(b => b.token === 'USDC');
 
-                    setBalance(solBalance?.availableFormatted || 0);
-                    setUsdcBalance(usdcBalanceData?.availableFormatted || 0);
+                    setShieldedBalance(solBalance?.availableFormatted || 0);
+                    setShieldedUsdcBalance(usdcBalanceData?.availableFormatted || 0);
 
-                    // Map to our token balance format
                     const mappedBalances: TokenBalance[] = balances.map(b => {
                         const tokenInfo = tokens.find(t => t.symbol === b.token);
                         return {
@@ -113,28 +133,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                             decimals: tokenInfo?.decimals || api.getDecimals(b.token),
                         };
                     });
-                    setTokenBalances(mappedBalances);
+                    setShieldedTokenBalances(mappedBalances);
 
-                    console.log('[WalletContext] ShadowWire balances received:', { balances });
-                    return;
+                    console.log('[WalletContext] Shielded balances:', {
+                        sol: solBalance?.availableFormatted,
+                        usdc: usdcBalanceData?.availableFormatted
+                    });
                 }
             }
-
-            // Fallback to direct RPC calls
-            console.log('[WalletContext] Using fallback RPC for balances...');
-            const [solBal, usdcBal] = await Promise.all([
-                fetchSolBalance(address),
-                fetchTokenBalance(address, USDC_MINT),
-            ]);
-
-            console.log('[WalletContext] Fallback balances received:', { solBal, usdcBal });
-
-            setBalance(solBal);
-            setUsdcBalance(usdcBal);
-            setTokenBalances([
-                { symbol: 'SOL', name: 'Solana', balance: solBal * 1e9, balanceFormatted: solBal, decimals: 9 },
-                { symbol: 'USDC', name: 'USD Coin', balance: usdcBal * 1e6, balanceFormatted: usdcBal, decimals: 6 },
-            ]);
         } catch (err: any) {
             const errMsg = err.message || 'Failed to fetch balances';
             console.error('[WalletContext] Refresh Error:', errMsg);
@@ -170,7 +176,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         hydrateWallet();
     }, []);
 
-    // Effect specifically for balance updates when address changes
+    // Effect for balance updates when address changes
     useEffect(() => {
         if (address) {
             console.log('[WalletContext] Address detected, triggering initial fetch...');
@@ -178,7 +184,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [address, refreshBalance]);
 
-    // Fix storage events (they only fire for OTHER tabs)
+    // Storage events
     useEffect(() => {
         const handleInternalUpdate = () => {
             const storedAddress = localStorage.getItem('arcium_wallet_address');
@@ -202,10 +208,20 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
     }, [address]);
 
+    // Combined balances for backward compatibility
+    const balance = onChainBalance;
+    const usdcBalance = onChainUsdcBalance;
+    const tokenBalances = shieldedTokenBalances;
+
     return (
         <WalletContext.Provider value={{
             wallet,
             address,
+            onChainBalance,
+            onChainUsdcBalance,
+            shieldedBalance,
+            shieldedUsdcBalance,
+            shieldedTokenBalances,
             balance,
             usdcBalance,
             tokenBalances,

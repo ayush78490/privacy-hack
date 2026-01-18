@@ -36,6 +36,9 @@ const ConfirmWallet: React.FC = () => {
                 localStorage.setItem('arcium_wallet_address', address);
                 localStorage.setItem('arcium_mnemonic', mnemonic);
 
+                // Dispatch internal update
+                window.dispatchEvent(new Event('walletUpdate'));
+
                 setLocation('/dashboard');
             } catch (err) {
                 console.error('Wallet derivation failed:', err);

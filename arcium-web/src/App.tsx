@@ -10,36 +10,40 @@ import ConfirmWallet from './pages/ConfirmWallet';
 import Profile from './pages/Profile';
 import ImportWallet from './pages/ImportWallet';
 
+import { WalletProvider } from './context/WalletContext';
+
 function App() {
   return (
     <Layout>
-      <Switch>
-        <Route path="/" component={Welcome} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/activity" component={Activity} />
-        <Route path="/swap" component={Swap} />
-        <Route path="/send" component={Send} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/import-wallet" component={ImportWallet} />
-        <Route path="/create-wallet" component={CreateWallet} />
-        <Route path="/confirm-wallet" component={ConfirmWallet} />
-        <Route path="/settings">
-          <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold mb-4">Settings</h1>
-            <p className="text-slate-400">Settings page coming soon...</p>
-            <Link
-              href="/dashboard"
-              className="mt-4 px-6 py-2 bg-primary rounded-lg text-white font-bold inline-block"
-            >
-              Back to Home
-            </Link>
-          </div>
-        </Route>
-        {/* Default redirect to welcome or dashboard */}
-        <Route>
-          <Redirect to="/" />
-        </Route>
-      </Switch>
+      <WalletProvider>
+        <Switch>
+          <Route path="/" component={Welcome} />
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/activity" component={Activity} />
+          <Route path="/swap" component={Swap} />
+          <Route path="/send" component={Send} />
+          <Route path="/profile" component={Profile} />
+          <Route path="/import-wallet" component={ImportWallet} />
+          <Route path="/create-wallet" component={CreateWallet} />
+          <Route path="/confirm-wallet" component={ConfirmWallet} />
+          <Route path="/settings">
+            <div className="p-8 text-center">
+              <h1 className="text-2xl font-bold mb-4">Settings</h1>
+              <p className="text-slate-400">Settings page coming soon...</p>
+              <Link
+                href="/dashboard"
+                className="mt-4 px-6 py-2 bg-primary rounded-lg text-white font-bold inline-block"
+              >
+                Back to Home
+              </Link>
+            </div>
+          </Route>
+          {/* Default redirect to welcome or dashboard */}
+          <Route>
+            <Redirect to="/" />
+          </Route>
+        </Switch>
+      </WalletProvider>
     </Layout>
   );
 }

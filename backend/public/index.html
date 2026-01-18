@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowWire API - Test Console</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-title {
+            font-size: 1.1rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .endpoint-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .endpoint-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s;
+        }
+
+        .endpoint-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .method {
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .method.get {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .method.post {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            color: #a78bfa;
+        }
+
+        .endpoint-desc {
+            color: #888;
+            margin-left: auto;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔮 ShadowWire API</h1>
+        <p class="subtitle">Privacy-preserving Solana payments</p>
+
+        <div class="status-card">
+            <div class="status-title">Server Status</div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span id="status-text">Checking...</span>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div class="status-title">Available Endpoints</div>
+            <div class="endpoint-grid">
+                <div class="endpoint-card">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/health</span>
+                    <span class="endpoint-desc">Health check</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/balance/:wallet</span>
+                    <span class="endpoint-desc">Get wallet balance</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/balances/:wallet</span>
+                    <span class="endpoint-desc">Get all token balances</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/tokens</span>
+                    <span class="endpoint-desc">List supported tokens</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/deposit</span>
+                    <span class="endpoint-desc">Create deposit transaction</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/withdraw</span>
+                    <span class="endpoint-desc">Create withdraw transaction</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/transfer</span>
+                    <span class="endpoint-desc">Execute transfer</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/upload-proof</span>
+                    <span class="endpoint-desc">Upload ZK proof</span>
+                </div>
+                <div class="endpoint-card">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/internal-transfer</span>
+                    <span class="endpoint-desc">Internal transfer</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/health')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('status-text').textContent =
+                    `Online • Build: ${data.build?.slice(0, 10)}...`;
+            })
+            .catch(() => {
+                document.getElementById('status-text').textContent = 'Error connecting';
+                document.querySelector('.status-dot').style.background = '#ef4444';
+            });
+    </script>
+</body>
+
+</html>

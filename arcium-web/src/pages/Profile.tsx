@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'wouter';
+import { useWallet } from '../context/WalletContext';
 
 const Profile: React.FC = () => {
+    const { address, balance, usdcBalance, apiConnected } = useWallet();
     const [copied, setCopied] = useState(false);
-    const [walletAddress] = useState(() =>
-        localStorage.getItem('arcium_wallet_address') || "7xKX...j9Pv"
-    );
+
+    const displayAddress = address || '7xKX...j9Pv';
 
     const copyToClipboard = () => {
-        const textToCopy = localStorage.getItem('arcium_wallet_address') || walletAddress;
+        const textToCopy = address || displayAddress;
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -53,7 +54,7 @@ const Profile: React.FC = () => {
                                 <img
                                     alt="User profile"
                                     className="h-full w-full object-cover"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXfL_3QE_wLZmKahD-Edq3AcKqFfHsuAnoUi6Ws-0-0BTl-pE0EmkrWmg73OiTztY8S9WWz-0KnIRiBpr6cOBDR8oOUPgK4raYhAtHNpDextF_hyOOBDhft8Nnnphu-LiLuZTQuAnxnILJ1Y31vbnqwRoXok10eU1oX69m51AU1PJVRepdkRsI8eIG5vsNkgI-EXD348pGwXLObMRi7qvgByO69ovZCvUW3gWL9_fKj2zdET-ujkqp6-o9kH6LOGSny7Q9THOzqMS1"
+                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky"
                                 />
                             </div>
                         </div>
@@ -64,8 +65,10 @@ const Profile: React.FC = () => {
 
                     <h1 className="text-white text-2xl font-bold mb-1">Arcium Explorer</h1>
                     <div className="flex items-center gap-2 mb-8">
-                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="text-xs font-semibold uppercase tracking-widest text-emerald-500/80">Active User</span>
+                        <div className={`h-2 w-2 rounded-full ${apiConnected ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></div>
+                        <span className={`text-xs font-semibold uppercase tracking-widest ${apiConnected ? 'text-emerald-500/80' : 'text-amber-500/80'}`}>
+                            {apiConnected ? 'ShadowWire Connected' : 'RPC Mode'}
+                        </span>
                     </div>
 
                     {/* Wallet Card */}
@@ -81,7 +84,7 @@ const Profile: React.FC = () => {
                                 <div className="flex items-center gap-3 bg-obsidian/60 rounded-2xl p-4 border border-white/5 shadow-inner">
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white font-mono text-[13px] leading-relaxed break-all">
-                                            {walletAddress}
+                                            {displayAddress}
                                         </p>
                                     </div>
                                     <button
@@ -96,7 +99,7 @@ const Profile: React.FC = () => {
 
                                 <div className="flex flex-col items-center gap-4 py-6 bg-white/[0.02] rounded-2xl border border-white/5 shadow-sm">
                                     <div className="relative size-40 bg-white rounded-2xl p-3 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                                        {/* Placeholder for QR Code */}
+                                        {/* QR Code placeholder */}
                                         <div className="w-full h-full bg-white rounded flex items-center justify-center relative overflow-hidden">
                                             <div className="absolute inset-0 bg-neutral-100 flex items-center justify-center">
                                                 <span className="material-symbols-outlined text-black/30 text-[80px]">qr_code_2</span>
@@ -118,39 +121,47 @@ const Profile: React.FC = () => {
                     {/* Stats/Actions */}
                     <div className="grid grid-cols-2 gap-4 w-full mb-8">
                         <div className="glass-card p-4 rounded-2xl border border-white/5 flex flex-col items-center">
-                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Network</span>
-                            <span className="text-white font-bold">Arcium</span>
+                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">SOL Balance</span>
+                            <span className="text-white font-bold">{balance.toFixed(4)} SOL</span>
                         </div>
                         <div className="glass-card p-4 rounded-2xl border border-white/5 flex flex-col items-center">
-                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Tier</span>
-                            <span className="text-primary font-bold tracking-tight">VIP Shielded</span>
+                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">USDC Balance</span>
+                            <span className="text-primary font-bold tracking-tight">${usdcBalance.toFixed(2)}</span>
                         </div>
                     </div>
 
-                    {/* Recent Transactions Section */}
+                    {/* Quick Actions */}
                     <div className="w-full">
                         <div className="flex items-center justify-between mb-4 px-2">
-                            <h3 className="text-white font-bold text-lg">Privacy History</h3>
-                            <Link href="/activity" className="text-primary text-xs font-bold uppercase tracking-wider">See More</Link>
+                            <h3 className="text-white font-bold text-lg">Quick Actions</h3>
                         </div>
 
-                        <div className="space-y-4">
-                            <ActivityItem
-                                title="Shielded Send"
-                                amount="-0.5 SOL"
-                                time="Today • 2:45 PM"
-                                status="Success"
-                                icon="shield_lock"
-                                color="text-amber-400"
-                            />
-                            <ActivityItem
-                                title="Swap SOL-USDC"
-                                amount="1.2 SOL"
-                                time="Yesterday • 11:20 AM"
-                                status="Success"
-                                icon="swap_horiz"
-                                color="text-primary"
-                            />
+                        <div className="space-y-3">
+                            <Link href="/send" className="glass-card p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                                        <span className="material-symbols-outlined text-[20px] text-primary">arrow_outward</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-white font-bold text-sm">Send Privately</span>
+                                        <span className="text-gray-500 text-[10px] font-medium uppercase tracking-wider">ZK-protected transfer</span>
+                                    </div>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">chevron_right</span>
+                            </Link>
+
+                            <Link href="/activity" className="glass-card p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                        <span className="material-symbols-outlined text-[20px] text-emerald-400">history</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-white font-bold text-sm">View Activity</span>
+                                        <span className="text-gray-500 text-[10px] font-medium uppercase tracking-wider">Transaction history</span>
+                                    </div>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">chevron_right</span>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -158,33 +169,5 @@ const Profile: React.FC = () => {
         </div>
     );
 };
-
-const ActivityItem: React.FC<{
-    title: string,
-    amount: string,
-    time: string,
-    status: string,
-    icon: string,
-    color: string
-}> = ({ title, amount, time, status, icon, color }) => (
-    <div className="glass-card p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-colors group">
-        <div className="flex items-center gap-4">
-            <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/10 transition-colors">
-                <span className={`material-symbols-outlined text-[20px] ${color}`}>{icon}</span>
-            </div>
-            <div className="flex flex-col">
-                <span className="text-white font-bold text-sm">{title}</span>
-                <span className="text-gray-500 text-[10px] font-medium uppercase tracking-wider">{time}</span>
-            </div>
-        </div>
-        <div className="flex flex-col items-end">
-            <span className="text-white font-bold text-sm font-mono tracking-tighter">{amount}</span>
-            <div className="flex items-center gap-1">
-                <span className="size-1 rounded-full bg-emerald-500"></span>
-                <span className="text-emerald-500 text-[10px] font-bold uppercase tracking-widest">{status}</span>
-            </div>
-        </div>
-    </div>
-);
 
 export default Profile;

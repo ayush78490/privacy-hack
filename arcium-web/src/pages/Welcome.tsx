@@ -10,23 +10,17 @@ const Welcome: React.FC = () => {
 
             <div className="flex flex-col h-full grow w-full max-w-md mx-auto p-6 justify-between relative z-10">
                 <div className="flex flex-col items-center pt-10">
-                    <div className="flex items-center gap-2 mb-2 px-4 py-1.5 rounded-full border border-glass-border bg-glass-surface backdrop-blur-md shadow-glass-shine">
-                        <span className="material-symbols-outlined text-transparent bg-clip-text bg-gradient-to-r from-electric-purple to-neon-teal text-xl font-bold filled">shield_lock</span>
-                        <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-wide text-sm font-bold uppercase">Arcium</h3>
+                    <div className="flex items-center gap-2 mb-12 px-4 py-1.5 rounded-full border border-glass-border bg-glass-surface backdrop-blur-md shadow-glass-shine">
+                        <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-wide text-sm font-bold uppercase">PrivyPay</h3>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center w-full my-auto">
+                <div className="flex flex-col items-center justify-center  w-full my-auto">
                     <div className="relative w-full aspect-square max-w-[320px] flex items-center justify-center mb-10">
-                        <div className="absolute inset-0 border border-electric-purple/10 rounded-full scale-110"></div>
+                        <div className="absolute inset-0 border border-electric-purple/10  rounded-full scale-110"></div>
                         <div className="absolute inset-0 border border-neon-teal/5 rounded-full scale-125 border-dashed"></div>
                         <div className="absolute inset-0 bg-gradient-to-tr from-electric-purple/20 to-neon-teal/20 blur-[50px] rounded-full scale-75 animate-pulse-slow"></div>
-                        <div className="relative z-10 w-full h-full p-8 rounded-full bg-gradient-to-b from-white/5 to-transparent border border-white/5 backdrop-blur-sm shadow-2xl shadow-black/50">
-                            <div
-                                className="w-full h-full bg-center bg-contain bg-no-repeat relative z-20 drop-shadow-[0_0_25px_rgba(168,85,247,0.5)]"
-                                style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuA2l1rYY4EKgDMtd83DRLjEvYjtoY0BNDXzk8fkSksz-T94hJ_5vp9L20TzlJ73s8Ng-5A6l1t3e-8vtgyhS5a6pwYDlPq3yOoCJSe03NhjjXhvGe7tPPzHVjEX8atbKV7hC3_HC0CPslau41_UgOLgtpSLXmpl4UiUKfURk-kAXHnMb1csXy-oHuzINeui_LMnMy73s1gT5dTtGycbwbj6MKYi7lwlnGpomSQA14GMFu35CAVvyuIyja9BUbekoQd-9ED2n_xoM2j8")` }}
-                            >
-                            </div>
+                        <div className="relative z-10 w-full h-full p-8 rounded-full bg-gradient-to-b from-white/5 to-transparent border border-white/5 backdrop-blur-sm shadow-2xl shadow-black/50 bg-contain bg-no-repeat bg-[url('/privypay.png')] relative z-20">
                         </div>
                     </div>
 

@@ -1,7 +1,61 @@
 import React from 'react';
 import { Link } from 'wouter';
+import { useWallet } from '../context/WalletContext';
+
+// Token logo URLs
+const TOKEN_LOGOS: Record<string, string> = {
+    SOL: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
+    USDC: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png',
+    RADR: 'https://cryptologos.cc/logos/versions/solana-sol-logo-full.svg',
+    BONK: 'https://assets.coingecko.com/coins/images/28600/standard/bonk.jpg',
+    ORE: 'https://assets.coingecko.com/coins/images/35707/standard/ore-logo.png',
+};
+
+// Token colors for background
+const TOKEN_COLORS: Record<string, string> = {
+    SOL: 'rgba(30, 240, 150, 0.1)',
+    USDC: 'rgba(39, 117, 202, 0.1)',
+    RADR: 'rgba(102, 126, 234, 0.1)',
+    BONK: 'rgba(255, 165, 0, 0.1)',
+    ORE: 'rgba(255, 215, 0, 0.1)',
+};
+
+// Approximate SOL price (in production, fetch from price API)
+const SOL_PRICE_USD = 135.42;
 
 const Dashboard: React.FC = () => {
+    const { address, balance, usdcBalance, tokenBalances, refreshBalance, loading, error, apiConnected } = useWallet();
+
+    React.useEffect(() => {
+        if (address) {
+            refreshBalance();
+            // Set up an interval to refresh balance every 30 seconds
+            const interval = setInterval(refreshBalance, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [address, refreshBalance]);
+
+    // Calculate total balance in USD
+    const totalBalanceUsd = React.useMemo(() => {
+        let total = balance * SOL_PRICE_USD + usdcBalance;
+        // Add other token values (simplified - in production use real prices)
+        tokenBalances.forEach(tb => {
+            if (tb.symbol !== 'SOL' && tb.symbol !== 'USDC') {
+                // Add token value if we have a price (placeholder)
+                total += 0;
+            }
+        });
+        return total;
+    }, [balance, usdcBalance, tokenBalances]);
+
+    // Get display tokens (filter out zero balances for non-primary tokens)
+    const displayTokens = React.useMemo(() => {
+        const primaryTokens = ['SOL', 'USDC'];
+        return tokenBalances.filter(tb =>
+            primaryTokens.includes(tb.symbol) || tb.balanceFormatted > 0
+        );
+    }, [tokenBalances]);
+
     return (
         <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24">
             {/* Background blobs */}
@@ -17,7 +71,7 @@ const Dashboard: React.FC = () => {
                         <img
                             alt="User profile"
                             className="h-full w-full object-cover"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXfL_3QE_wLZmKahD-Edq3AcKqFfHsuAnoUi6Ws-0-0BTl-pE0EmkrWmg73OiTztY8S9WWz-0KnIRiBpr6cOBDR8oOUPgK4raYhAtHNpDextF_hyOOBDhft8Nnnphu-LiLuZTQuAnxnILJ1Y31vbnqwRoXok10eU1oX69m51AU1PJVRepdkRsI8eIG5vsNkgI-EXD348pGwXLObMRi7qvgByO69ovZCvUW3gWL9_fKj2zdET-ujkqp6-o9kH6LOGSny7Q9THOzqMS1"
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky"
                         />
                     </Link>
                     <div className="flex items-center gap-2">
@@ -25,8 +79,8 @@ const Dashboard: React.FC = () => {
                         <div className="flex flex-col">
                             <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Shielded</h2>
                             <p className="text-[10px] text-slate-500 font-mono">
-                                {localStorage.getItem('arcium_wallet_address')
-                                    ? `${localStorage.getItem('arcium_wallet_address')?.slice(0, 4)}...${localStorage.getItem('arcium_wallet_address')?.slice(-4)}`
+                                {address
+                                    ? `${address.slice(0, 4)}...${address.slice(-4)}`
                                     : 'No wallet detected'
                                 }
                             </p>
@@ -39,6 +93,23 @@ const Dashboard: React.FC = () => {
             </header>
 
             <main className="flex-1 px-4 pt-6">
+                {error && (
+                    <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-red-500 text-xs font-medium flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px]">error</span>
+                        {error}
+                    </div>
+                )}
+
+                {/* API Status Indicator */}
+                <div className="mb-4 flex items-center justify-center">
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${apiConnected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'} border`}>
+                        <div className={`w-2 h-2 rounded-full ${apiConnected ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${apiConnected ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            {apiConnected ? 'ShadowWire Connected' : 'Direct RPC Mode'}
+                        </span>
+                    </div>
+                </div>
+
                 <div className="mb-6 rounded-2xl border border-white/5 bg-surface-dark/60 backdrop-blur-md p-4 shadow-lg">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-col gap-1">
@@ -59,7 +130,9 @@ const Dashboard: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
                     <div className="relative z-10 flex flex-col items-center">
                         <p className="text-slate-400 text-sm font-medium mb-2 uppercase tracking-widest text-[10px]">Total Balance</p>
-                        <h1 className="text-white tracking-tight text-4xl font-extrabold leading-tight text-center mb-2 drop-shadow-md">$24,532.10</h1>
+                        <h1 className="text-white tracking-tight text-4xl font-extrabold leading-tight text-center mb-2 drop-shadow-md">
+                            ${totalBalanceUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </h1>
                         <div className="flex items-center gap-2 rounded-full bg-green-500/10 px-3 py-1 mb-6 border border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]">
                             <span className="material-symbols-outlined text-green-400 text-[16px]">trending_up</span>
                             <p className="text-green-400 text-sm font-bold leading-none">+2.4% today</p>
@@ -95,42 +168,54 @@ const Dashboard: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between px-1 mb-1">
                         <h3 className="text-lg font-bold text-white">Assets</h3>
-                        <button className="text-sm font-bold text-primary hover:text-primary-glow transition-colors">See All</button>
+                        <button
+                            className="text-sm font-bold text-primary hover:text-primary-glow transition-colors flex items-center gap-1"
+                            onClick={() => refreshBalance()}
+                            disabled={loading}
+                        >
+                            {loading && <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>}
+                            Refresh
+                        </button>
                     </div>
 
-                    <AssetItem
-                        logo="https://lh3.googleusercontent.com/aida-public/AB6AXuD4vME50WhIjLT7pffNFLG_QSxLxo7dkMbxspBJbVgbPB26EEwAvAAbFZJs72VrG6w3q6Jmgfr3eKBqz-5KQtGuEOZXcJKUOQtd1EMD9B70EMpuadFewDZdpoc_zehHa4Q6rmUqMxZL-0pU1rhoPKHr6CuFhrIai2oLuskCzscZ-VsN4iwnwJF0mOUXv_sjsgEkinZQ0a3kOu6kuWE5qRJ7Y-UNCTGl2okXbwNCDRde_0EED6oAX2lXgVUSTZD7caiiFi9OnJWC1WgN"
-                        name="Solana"
-                        amount="145 SOL"
-                        value="$19,450.00"
-                        change="+1.2%"
-                        color="rgba(20,241,149,0.2)"
-                    />
-
-                    <AssetItem
-                        logo="https://lh3.googleusercontent.com/aida-public/AB6AXuCuvksiSYz7LTuDH9G33cdsyXqqCwFOHbB5AiGGOoc-I8uVCmURfsGhCEMBy4ultXxtYgLbpE1sxYKRBxWDPmAZpjXlbJi0My1HMO5czIJjyw2-rJ0HATBOvvuXEPIXMzeQDIUpLL0Yzj7pqMJHLR6VL9HRLqLVTlWCI7qhp-VlFuPqWbC25RhvrwoF6C8Bzl52YL3gzPtgPucDw4H0waP9_FiVpvqospqfcCsVVCpzf6V__FPoHjzIHOAIuLd7AuCjq8xd0uzgC8EB"
-                        name="USDC"
-                        amount="5,082 USDC"
-                        value="$5,082.00"
-                        change="0.0%"
-                        color="rgba(39,117,202,0.2)"
-                    />
-
-                    <div className="group flex items-center justify-between rounded-2xl border border-white/5 bg-surface-dark/40 hover:bg-surface-dark/60 p-4 transition-all hover:border-primary/30 cursor-pointer backdrop-blur-sm">
-                        <div className="flex items-center gap-4">
-                            <div className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-purple-500"></div>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-base font-bold text-white group-hover:text-primary transition-colors">Arcium</span>
-                                <span className="text-xs font-medium text-slate-400">2,000 ARC</span>
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <span className="text-base font-bold text-white">$800.00</span>
-                            <span className="text-xs font-medium text-green-400">+5.4%</span>
-                        </div>
-                    </div>
+                    {/* Dynamic token list */}
+                    {displayTokens.length > 0 ? (
+                        displayTokens.map(token => (
+                            <AssetItem
+                                key={token.symbol}
+                                logo={TOKEN_LOGOS[token.symbol] || `https://ui-avatars.com/api/?name=${token.symbol}&background=random`}
+                                name={token.name}
+                                amount={`${token.balanceFormatted.toFixed(token.symbol === 'USDC' ? 2 : 4)} ${token.symbol}`}
+                                value={token.symbol === 'SOL'
+                                    ? `$${(token.balanceFormatted * SOL_PRICE_USD).toFixed(2)}`
+                                    : token.symbol === 'USDC'
+                                        ? `$${token.balanceFormatted.toFixed(2)}`
+                                        : '--'
+                                }
+                                change={token.symbol === 'SOL' ? '+1.2%' : '0.0%'}
+                                color={TOKEN_COLORS[token.symbol] || 'rgba(102, 126, 234, 0.1)'}
+                            />
+                        ))
+                    ) : (
+                        <>
+                            <AssetItem
+                                logo={TOKEN_LOGOS.SOL}
+                                name="Solana"
+                                amount={`${balance.toFixed(4)} SOL`}
+                                value={`$${(balance * SOL_PRICE_USD).toFixed(2)}`}
+                                change="+1.2%"
+                                color={TOKEN_COLORS.SOL}
+                            />
+                            <AssetItem
+                                logo={TOKEN_LOGOS.USDC}
+                                name="USDC"
+                                amount={`${usdcBalance.toFixed(2)} USDC`}
+                                value={`$${usdcBalance.toFixed(2)}`}
+                                change="0.0%"
+                                color={TOKEN_COLORS.USDC}
+                            />
+                        </>
+                    )}
                 </div>
 
                 <div className="mt-8 flex justify-center pb-6">

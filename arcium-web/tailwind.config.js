@@ -41,6 +41,7 @@ export default {
         'mesh-gradient': 'radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(45, 212, 191, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(45, 212, 191, 0.05) 0px, transparent 50%)',
         'glass-gradient': 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
         'primary-glow-bg': 'linear-gradient(135deg, #a855f7 0%, #2dd4bf 100%)',
+        'privacy-brand': "url('/privacy.png')",
       }
     },
   },

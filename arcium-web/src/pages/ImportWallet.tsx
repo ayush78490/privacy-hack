@@ -22,6 +22,9 @@ const ImportWallet: React.FC = () => {
             localStorage.setItem('arcium_wallet_address', address);
             localStorage.setItem('arcium_mnemonic', cleanMnemonic);
 
+            // Dispatch internal update
+            window.dispatchEvent(new Event('walletUpdate'));
+
             setLocation('/dashboard');
         } catch (err) {
             console.error('Import failed:', err);

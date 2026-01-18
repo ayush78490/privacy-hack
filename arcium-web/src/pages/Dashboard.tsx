@@ -152,7 +152,7 @@ const Dashboard: React.FC = () => {
                         <p className="text-white text-xl font-bold mb-1">
                             ${totalOnChainUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
-                        <p className="text-slate-500 text-[10px]">{onChainBalance.toFixed(4)} SOL</p>
+                        <p className="text-slate-500 text-[10px]">{onChainBalance.toFixed(6)} SOL</p>
                     </div>
 
                     {/* Shielded Balance */}
@@ -224,7 +224,7 @@ const Dashboard: React.FC = () => {
                     <AssetItem
                         logo={TOKEN_LOGOS.SOL}
                         name="Solana"
-                        amount={`${onChainBalance.toFixed(4)} SOL`}
+                        amount={`${onChainBalance.toFixed(6)} SOL`}
                         value={`$${(onChainBalance * SOL_PRICE_USD).toFixed(2)}`}
                         color={TOKEN_COLORS.SOL}
                         badge="on-chain"

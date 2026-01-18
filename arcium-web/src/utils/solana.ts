@@ -192,3 +192,37 @@ export const sendShielded = async (
         throw error;
     }
 };
+
+/**
+ * Transaction history entry from RPC
+ */
+export interface OnChainTransaction {
+    signature: string;
+    slot: number;
+    timestamp: number | null;
+    err: boolean;
+    memo: string | null;
+}
+
+/**
+ * Fetches recent transaction signatures for a wallet from the blockchain
+ */
+export const fetchTransactionHistory = async (publicKey: string, limit: number = 20): Promise<OnChainTransaction[]> => {
+    try {
+        return await withRetry(async (connection) => {
+            const pubKey = new PublicKey(publicKey);
+            const signatures = await connection.getSignaturesForAddress(pubKey, { limit });
+
+            return signatures.map(sig => ({
+                signature: sig.signature,
+                slot: sig.slot,
+                timestamp: sig.blockTime ? sig.blockTime * 1000 : null, // Convert to ms
+                err: sig.err !== null,
+                memo: sig.memo,
+            }));
+        });
+    } catch (error) {
+        console.error('[Solana] Failed to fetch transaction history:', error);
+        return [];
+    }
+};

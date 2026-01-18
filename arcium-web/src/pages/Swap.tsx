@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { useWallet } from '../context/WalletContext';
 import * as api from '../utils/api';
 import * as txStore from '../utils/txStore';
+import { executeJupiterSwap, getTokenDecimals } from '../utils/jupiter';
 import bs58 from 'bs58';
 
 // Default token logos
@@ -173,42 +174,45 @@ const Swap: React.FC = () => {
         setShowApprovalModal(true);
     };
 
-    // Execute normal on-chain swap
+    // Execute normal on-chain swap using Jupiter
     const handleNormalSwap = async () => {
         if (!wallet || !address) return;
 
+        const amount = parseFloat(fromAmount);
+        if (isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+
         setSigning(true);
         try {
-            console.log('[Swap] Executing normal on-chain swap...');
+            console.log('[Swap] Executing Jupiter swap...', { fromToken, toToken, amount });
 
-            const { Connection, Transaction, SystemProgram, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
-
+            const { Connection } = await import('@solana/web3.js');
             const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
             const connection = new Connection(rpcUrl, 'confirmed');
 
-            // Demo: Self-transfer to show real tx (In production: integrate Jupiter SDK)
-            const amountLamports = Math.max(100, Math.floor(parseFloat(fromAmount) * LAMPORTS_PER_SOL * 0.0001));
-
-            const transaction = new Transaction().add(
-                SystemProgram.transfer({
-                    fromPubkey: wallet.publicKey,
-                    toPubkey: wallet.publicKey,
-                    lamports: amountLamports,
-                })
+            // Execute real swap via Jupiter
+            const result = await executeJupiterSwap(
+                connection,
+                wallet,
+                fromToken,
+                toToken,
+                amount,
+                50 // 0.5% slippage
             );
 
-            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-            transaction.recentBlockhash = blockhash;
-            transaction.feePayer = wallet.publicKey;
-            transaction.sign(wallet);
+            if (!result) {
+                throw new Error('Swap failed - no result returned');
+            }
 
-            const txSignature = await connection.sendRawTransaction(transaction.serialize());
-            console.log('[Swap] Transaction sent:', txSignature);
+            console.log('[Swap] Jupiter swap confirmed:', result.signature);
 
-            await connection.confirmTransaction({ signature: txSignature, blockhash, lastValidBlockHeight });
-            console.log('[Swap] Transaction confirmed:', txSignature);
+            // Calculate output amount for display
+            const outputDecimals = getTokenDecimals(toToken);
+            const outputAmount = (parseInt(result.outputAmount) / Math.pow(10, outputDecimals)).toFixed(6);
 
-            setTxHash(txSignature);
+            setTxHash(result.signature);
             setShowSuccessModal(true);
 
             // Save transaction to local store
@@ -218,14 +222,14 @@ const Swap: React.FC = () => {
                 fromToken,
                 toToken,
                 amount: fromAmount,
-                toAmount: toAmount || '0',
-                txHash: txSignature,
+                toAmount: outputAmount,
+                txHash: result.signature,
                 isPrivate: false,
             });
 
             refreshBalance();
         } catch (err: any) {
-            console.error('[Swap] Normal swap failed:', err);
+            console.error('[Swap] Jupiter swap failed:', err);
             alert(`Swap failed: ${err.message || 'Transaction error'}`);
         } finally {
             setSigning(false);

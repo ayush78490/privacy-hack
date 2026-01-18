@@ -12,8 +12,6 @@ const SEND_TOKENS = [
     { symbol: 'BONK', name: 'Bonk', logo: 'https://assets.coingecko.com/coins/images/28600/standard/bonk.jpg' },
 ];
 
-// SOL price placeholder
-const SOL_PRICE_USD = 135.42;
 
 interface TransactionPreview {
     type: 'internal' | 'external';
@@ -27,7 +25,7 @@ interface TransactionPreview {
 }
 
 const Send: React.FC = () => {
-    const { wallet, address, balance, usdcBalance, tokenBalances, refreshBalance, apiConnected } = useWallet();
+    const { wallet, address, balance, usdcBalance, tokenBalances, refreshBalance, apiConnected, solPrice } = useWallet();
     const [, setLocation] = useLocation();
     const [amount, setAmount] = useState('0');
     const [recipient, setRecipient] = useState('');
@@ -54,7 +52,7 @@ const Send: React.FC = () => {
     // USD value calculation
     const usdValue = useMemo(() => {
         const amt = parseFloat(amount) || 0;
-        if (selectedToken === 'SOL') return amt * SOL_PRICE_USD;
+        if (selectedToken === 'SOL') return amt * solPrice;
         if (selectedToken === 'USDC') return amt;
         return 0;
     }, [amount, selectedToken]);
@@ -373,7 +371,7 @@ const Send: React.FC = () => {
                                 <div className="text-right">
                                     <p className="text-white text-xl font-bold">{txPreview.amount} {txPreview.token}</p>
                                     <p className="text-slate-500 text-xs">
-                                        ≈ ${(parseFloat(txPreview.amount) * (txPreview.token === 'SOL' ? SOL_PRICE_USD : 1)).toFixed(2)}
+                                        ≈ ${(parseFloat(txPreview.amount) * (txPreview.token === 'SOL' ? solPrice : 1)).toFixed(2)}
                                     </p>
                                 </div>
                             </div>

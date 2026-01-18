@@ -21,8 +21,7 @@ const TOKEN_COLORS: Record<string, string> = {
     ORE: 'rgba(255, 215, 0, 0.1)',
 };
 
-// Approximate SOL price
-const SOL_PRICE_USD = 135.42;
+// Approximate SOL price - will be overridden by live data from context
 
 const Dashboard: React.FC = () => {
     const {
@@ -36,7 +35,8 @@ const Dashboard: React.FC = () => {
         refreshBalance,
         loading,
         error,
-        apiConnected
+        apiConnected,
+        solPrice
     } = useWallet();
 
     const [showDepositModal, setShowDepositModal] = useState(false);
@@ -53,8 +53,8 @@ const Dashboard: React.FC = () => {
     }, [address, refreshBalance]);
 
     // Calculate total balances
-    const totalOnChainUsd = (onChainBalance * SOL_PRICE_USD) + onChainUsdcBalance;
-    const totalShieldedUsd = (shieldedBalance * SOL_PRICE_USD) + shieldedUsdcBalance;
+    const totalOnChainUsd = (onChainBalance * solPrice) + onChainUsdcBalance;
+    const totalShieldedUsd = (shieldedBalance * solPrice) + shieldedUsdcBalance;
 
     // Handle deposit
     const handleDeposit = async () => {
@@ -225,7 +225,7 @@ const Dashboard: React.FC = () => {
                         logo={TOKEN_LOGOS.SOL}
                         name="Solana"
                         amount={`${onChainBalance.toFixed(6)} SOL`}
-                        value={`$${(onChainBalance * SOL_PRICE_USD).toFixed(2)}`}
+                        value={`$${(onChainBalance * solPrice).toFixed(2)}`}
                         color={TOKEN_COLORS.SOL}
                         badge="on-chain"
                     />
@@ -249,7 +249,7 @@ const Dashboard: React.FC = () => {
                                 logo={TOKEN_LOGOS.SOL}
                                 name="Solana (Shielded)"
                                 amount={`${shieldedBalance.toFixed(4)} SOL`}
-                                value={`$${(shieldedBalance * SOL_PRICE_USD).toFixed(2)}`}
+                                value={`$${(shieldedBalance * solPrice).toFixed(2)}`}
                                 color="rgba(255, 97, 26, 0.1)"
                                 badge="shielded"
                             />

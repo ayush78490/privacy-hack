@@ -3,6 +3,7 @@ import { Keypair } from '@solana/web3.js';
 import { mnemonicToWallet } from '../utils/wallet';
 import * as api from '../utils/api';
 import { fetchBalance as fetchSolBalance, fetchTokenBalance } from '../utils/solana';
+import { fetchSolPrice } from '../utils/prices';
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // Mainnet USDC
 
@@ -34,6 +35,8 @@ interface WalletContextType {
     mnemonic: string | null;
     error: string | null;
     apiConnected: boolean;
+    // Live price
+    solPrice: number;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -56,8 +59,24 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [mnemonic, setMnemonic] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [apiConnected, setApiConnected] = useState(false);
+    const [solPrice, setSolPrice] = useState<number>(140); // Default fallback
 
     const isRefreshing = useRef(false);
+
+    // Fetch SOL price on mount and every 60 seconds
+    useEffect(() => {
+        const fetchPrice = async () => {
+            try {
+                const price = await fetchSolPrice();
+                setSolPrice(price);
+            } catch (err) {
+                console.error('[WalletContext] Failed to fetch SOL price:', err);
+            }
+        };
+        fetchPrice();
+        const interval = setInterval(fetchPrice, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Check API connection and fetch tokens on mount
     useEffect(() => {
@@ -230,7 +249,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             refreshBalance,
             mnemonic,
             error,
-            apiConnected
+            apiConnected,
+            solPrice
         }}>
             {children}
         </WalletContext.Provider>

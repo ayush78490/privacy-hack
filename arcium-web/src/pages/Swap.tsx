@@ -15,9 +15,6 @@ const TOKEN_LOGOS: Record<string, string> = {
     USDT: 'https://assets.coingecko.com/coins/images/325/standard/Tether.png',
 };
 
-// SOL price placeholder
-const SOL_PRICE_USD = 135.42;
-
 interface SwapPreview {
     fromToken: string;
     toToken: string;
@@ -30,7 +27,7 @@ interface SwapPreview {
 }
 
 const Swap: React.FC = () => {
-    const { wallet, address, balance, usdcBalance, tokenBalances, tokens: contextTokens, apiConnected, refreshBalance } = useWallet();
+    const { wallet, address, balance, usdcBalance, tokenBalances, tokens: contextTokens, apiConnected, refreshBalance, solPrice } = useWallet();
     const [swapTokens, setSwapTokens] = useState<api.Token[]>([]);
     const [fromToken, setFromToken] = useState('SOL');
     const [toToken, setToToken] = useState('USDC');
@@ -91,9 +88,9 @@ const Swap: React.FC = () => {
         if (from <= 0) return '';
 
         if (fromToken === 'SOL' && toToken === 'USDC') {
-            return (from * SOL_PRICE_USD).toFixed(2);
+            return (from * solPrice).toFixed(2);
         } else if (fromToken === 'USDC' && toToken === 'SOL') {
-            return (from / SOL_PRICE_USD).toFixed(6);
+            return (from / solPrice).toFixed(6);
         }
         return from.toFixed(4);
     }, [fromAmount, fromToken, toToken]);
@@ -101,7 +98,7 @@ const Swap: React.FC = () => {
     // USD value of from amount
     const fromUsdValue = useMemo(() => {
         const from = parseFloat(fromAmount) || 0;
-        if (fromToken === 'SOL') return from * SOL_PRICE_USD;
+        if (fromToken === 'SOL') return from * solPrice;
         if (fromToken === 'USDC') return from;
         return 0;
     }, [fromAmount, fromToken]);
@@ -545,7 +542,7 @@ const Swap: React.FC = () => {
                     <div className="flex justify-between text-xs text-slate-500 mb-2">
                         <span>Rate</span>
                         <span className="text-slate-300">
-                            1 {fromToken} ≈ {fromToken === 'SOL' ? SOL_PRICE_USD.toFixed(2) : (1 / SOL_PRICE_USD).toFixed(6)} {toToken}
+                            1 {fromToken} ≈ {fromToken === 'SOL' ? solPrice.toFixed(2) : (1 / solPrice).toFixed(6)} {toToken}
                         </span>
                     </div>
                     <div className="flex justify-between text-xs text-slate-500 mb-2">

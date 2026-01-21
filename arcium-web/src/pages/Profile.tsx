@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'wouter';
+import { QRCodeSVG } from 'qrcode.react';
 import { useWallet } from '../context/WalletContext';
 
 const Profile: React.FC = () => {
-    const { address, balance, usdcBalance, apiConnected } = useWallet();
+    const { address, balance, usdcBalance, apiConnected, solPrice } = useWallet();
     const [copied, setCopied] = useState(false);
 
-    const displayAddress = address || '7xKX...j9Pv';
+    const displayAddress = address
+        ? `${address.slice(0, 6)}...${address.slice(-6)}`
+        : '';
 
     const copyToClipboard = () => {
         const textToCopy = address || displayAddress;
@@ -28,29 +31,36 @@ const Profile: React.FC = () => {
         }
     };
 
+    const totalUsd = (balance * solPrice) + usdcBalance;
+
     return (
-        <div className="bg-dark-bg min-h-screen flex flex-col overflow-hidden text-gray-200 relative pb-24">
-            {/* Background blobs */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-900/15 rounded-full blur-[100px]"></div>
-                <div className="absolute bottom-[20%] left-[-10%] w-[60%] h-[60%] bg-emerald-900/10 rounded-full blur-[120px]"></div>
+        <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 bg-[#121212]">
+            {/* Background blobs - matching Dashboard */}
+            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#FF611A]/10 rounded-full blur-[100px]"></div>
+                <div className="absolute bottom-[20%] right-[-20%] w-[60vw] h-[60vw] bg-[#FF611A]/5 rounded-full blur-[100px]"></div>
             </div>
 
-            <header className="flex-none sticky top-0 z-20 glass-panel border-b-0">
-                <div className="flex items-center px-4 pt-12 pb-4">
-                    <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+            <header className="sticky top-0 z-20 glass-panel border-b border-white/5 px-4 py-3">
+                <div className="flex items-center justify-between">
+                    <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/5 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
-                    <h2 className="text-white text-lg font-bold leading-tight tracking-wide flex-1 text-center pr-10">Your Profile</h2>
+                    <h2 className="text-white text-lg font-bold leading-tight tracking-wide">Profile</h2>
+                    <Link href="/settings" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/5 transition-colors">
+                        <span className="material-symbols-outlined">settings</span>
+                    </Link>
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar relative z-10">
-                <div className="px-6 py-8 flex flex-col items-center">
-                    {/* Profile Header */}
-                    <div className="relative mb-6">
-                        <div className="size-24 rounded-full p-[2px] bg-gradient-to-tr from-primary via-cyan-500 to-emerald-500 shadow-glow">
-                            <div className="h-full w-full rounded-full bg-surface-dark border-2 border-dark-bg overflow-hidden ring-4 ring-white/5">
+            <main className="flex-1 px-4 pt-6">
+                {/* Profile Card */}
+                <div className="rounded-3xl border border-[#FF611A]/20 bg-gradient-to-br from-[#FF611A]/10 to-transparent p-6 mb-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF611A]/10 rounded-full blur-[60px]"></div>
+
+                    <div className="relative z-10 flex items-center gap-4 mb-6">
+                        <div className="size-20 rounded-full p-[2px] bg-gradient-to-tr from-[#FF611A] via-orange-400 to-yellow-500 shadow-[0_0_20px_rgba(255,97,26,0.4)]">
+                            <div className="h-full w-full rounded-full bg-[#1a1a1a] border-2 border-[#121212] overflow-hidden">
                                 <img
                                     alt="User profile"
                                     className="h-full w-full object-cover"
@@ -58,111 +68,154 @@ const Profile: React.FC = () => {
                                 />
                             </div>
                         </div>
-                        <div className="absolute bottom-1 right-1 size-6 rounded-full bg-emerald-500 border-2 border-dark-bg flex items-center justify-center shadow-lg">
-                            <span className="material-symbols-outlined text-white text-[14px] filled">check</span>
-                        </div>
-                    </div>
-
-                    <h1 className="text-white text-2xl font-bold mb-1">Arcium Explorer</h1>
-                    <div className="flex items-center gap-2 mb-8">
-                        <div className={`h-2 w-2 rounded-full ${apiConnected ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></div>
-                        <span className={`text-xs font-semibold uppercase tracking-widest ${apiConnected ? 'text-emerald-500/80' : 'text-amber-500/80'}`}>
-                            {apiConnected ? 'ShadowWire Connected' : 'RPC Mode'}
-                        </span>
-                    </div>
-
-                    {/* Wallet Card */}
-                    <div className="w-full glass-card p-6 rounded-3xl border border-white/5 mb-8 relative overflow-hidden group min-h-[320px]">
-                        <div className="absolute top-2 right-2 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <span className="material-symbols-outlined text-[120px] text-white">account_balance_wallet</span>
-                        </div>
-
-                        <div className="relative z-10">
-                            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-4">Solana Wallet Address</p>
-
-                            <div className="flex flex-col gap-6">
-                                <div className="flex items-center gap-3 bg-obsidian/60 rounded-2xl p-4 border border-white/5 shadow-inner">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-white font-mono text-[13px] leading-relaxed break-all">
-                                            {displayAddress}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={copyToClipboard}
-                                        className="shrink-0 size-10 flex items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/30 hover:bg-primary transition-all active:scale-90"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">
-                                            {copied ? 'done' : 'content_copy'}
-                                        </span>
-                                    </button>
-                                </div>
-
-                                <div className="flex flex-col items-center gap-4 py-6 bg-white/[0.02] rounded-2xl border border-white/5 shadow-sm">
-                                    <div className="relative size-40 bg-white rounded-2xl p-3 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-                                        {/* QR Code placeholder */}
-                                        <div className="w-full h-full bg-white rounded flex items-center justify-center relative overflow-hidden">
-                                            <div className="absolute inset-0 bg-neutral-100 flex items-center justify-center">
-                                                <span className="material-symbols-outlined text-black/30 text-[80px]">qr_code_2</span>
-                                            </div>
-                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.02)_100%)]"></div>
-                                            {/* Decorative corners */}
-                                            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary/40"></div>
-                                            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary/40"></div>
-                                            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary/40"></div>
-                                            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary/40"></div>
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Scan to Receive</p>
-                                </div>
+                        <div className="flex-1">
+                            <h1 className="text-white text-xl font-bold mb-1">Arcium Explorer</h1>
+                            <div className="flex items-center gap-2">
+                                <div className={`h-2 w-2 rounded-full ${apiConnected ? 'bg-[#FF611A]' : 'bg-amber-500'} animate-pulse`}></div>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${apiConnected ? 'text-[#FF611A]' : 'text-amber-500'}`}>
+                                    {apiConnected ? 'ShadowWire Connected' : 'RPC Mode'}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Stats/Actions */}
-                    <div className="grid grid-cols-2 gap-4 w-full mb-8">
-                        <div className="glass-card p-4 rounded-2xl border border-white/5 flex flex-col items-center">
-                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">SOL Balance</span>
-                            <span className="text-white font-bold">{balance.toFixed(4)} SOL</span>
-                        </div>
-                        <div className="glass-card p-4 rounded-2xl border border-white/5 flex flex-col items-center">
-                            <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">USDC Balance</span>
-                            <span className="text-primary font-bold tracking-tight">${usdcBalance.toFixed(2)}</span>
-                        </div>
+                    {/* Total Value */}
+                    <div className="text-center py-4 border-t border-white/5">
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Total Value</p>
+                        <p className="text-white text-3xl font-bold">
+                            ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
                     </div>
+                </div>
 
-                    {/* Quick Actions */}
-                    <div className="w-full">
-                        <div className="flex items-center justify-between mb-4 px-2">
-                            <h3 className="text-white font-bold text-lg">Quick Actions</h3>
+                {/* Wallet Address Card */}
+                <div className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4 mb-6">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Wallet Address</p>
+                    <div className="flex items-center gap-3 bg-[#262626] rounded-xl p-3 border border-white/5">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-mono text-xs leading-relaxed break-all">
+                                {displayAddress || 'No wallet connected'}
+                            </p>
                         </div>
+                        <button
+                            onClick={copyToClipboard}
+                            disabled={!address}
+                            className="shrink-0 size-10 flex items-center justify-center rounded-xl bg-[#FF611A]/20 text-[#FF611A] border border-[#FF611A]/30 hover:bg-[#FF611A] hover:text-white transition-all active:scale-90 disabled:opacity-50"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">
+                                {copied ? 'done' : 'content_copy'}
+                            </span>
+                        </button>
+                    </div>
+                </div>
 
-                        <div className="space-y-3">
-                            <Link href="/send" className="glass-card p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-colors group">
-                                <div className="flex items-center gap-4">
-                                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                                        <span className="material-symbols-outlined text-[20px] text-primary">arrow_outward</span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-white font-bold text-sm">Send Privately</span>
-                                        <span className="text-gray-500 text-[10px] font-medium uppercase tracking-wider">ZK-protected transfer</span>
-                                    </div>
+                {/* QR Code Card */}
+                <div className="rounded-2xl border border-[#FF611A]/20 bg-[#FF611A]/5 p-6 mb-6">
+                    <div className="flex flex-col items-center">
+                        <div className="relative bg-[#FF611A] rounded-2xl p-4 mb-4 shadow-[0_0_30px_rgba(255,97,26,0.3)]">
+                            {address ? (
+                                <QRCodeSVG
+                                    value={`solana:${address}`}
+                                    size={180}
+                                    level="H"
+                                    includeMargin={false}
+                                    fgColor="#ffffff"
+                                    bgColor="#FF611A"
+                                />
+                            ) : (
+                                <div className="w-[180px] h-[180px] bg-[#FF611A]/50 rounded flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-white/50 text-[60px]">qr_code_2</span>
                                 </div>
-                                <span className="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">chevron_right</span>
-                            </Link>
-
-                            <Link href="/activity" className="glass-card p-4 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/[0.04] transition-colors group">
-                                <div className="flex items-center gap-4">
-                                    <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                                        <span className="material-symbols-outlined text-[20px] text-emerald-400">history</span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-white font-bold text-sm">View Activity</span>
-                                        <span className="text-gray-500 text-[10px] font-medium uppercase tracking-wider">Transaction history</span>
-                                    </div>
+                            )}
+                            {/* Center logo overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg">
+                                    <span className="material-symbols-outlined text-[#FF611A] text-[24px] filled">shield</span>
                                 </div>
-                                <span className="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">chevron_right</span>
-                            </Link>
+                            </div>
                         </div>
+                        <p className="text-[10px] text-[#FF611A] font-bold uppercase tracking-widest">Scan to Receive SOL</p>
+                    </div>
+                </div>
+
+                {/* Balance Cards */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <img
+                                src="https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png"
+                                alt="SOL"
+                                className="w-5 h-5 object-contain rounded-full"
+                            />
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">SOL</span>
+                        </div>
+                        <p className="text-white font-bold text-lg">{balance.toFixed(4)}</p>
+                        <p className="text-slate-500 text-xs">${(balance * solPrice).toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                            <img
+                                src="https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png"
+                                alt="USDC"
+                                className="w-5 h-5 object-contain rounded-full"
+                            />
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">USDC</span>
+                        </div>
+                        <p className="text-white font-bold text-lg">{usdcBalance.toFixed(2)}</p>
+                        <p className="text-slate-500 text-xs">${usdcBalance.toFixed(2)}</p>
+                    </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="mb-6">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 px-1">Quick Actions</p>
+                    <div className="space-y-3">
+                        <Link href="/send" className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4 flex items-center justify-between hover:bg-[#262626] transition-colors group">
+                            <div className="flex items-center gap-4">
+                                <div className="size-10 rounded-xl bg-[#FF611A]/10 flex items-center justify-center border border-[#FF611A]/20">
+                                    <span className="material-symbols-outlined text-[20px] text-[#FF611A]">arrow_outward</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-white font-bold text-sm">Send Privately</span>
+                                    <span className="text-slate-500 text-[10px] font-medium uppercase tracking-wider">ZK-protected transfer</span>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-500 group-hover:text-[#FF611A] transition-colors">chevron_right</span>
+                        </Link>
+
+                        <Link href="/receive" className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4 flex items-center justify-between hover:bg-[#262626] transition-colors group">
+                            <div className="flex items-center gap-4">
+                                <div className="size-10 rounded-xl bg-[#FF611A]/10 flex items-center justify-center border border-[#FF611A]/20">
+                                    <span className="material-symbols-outlined text-[20px] text-[#FF611A] rotate-180">arrow_outward</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-white font-bold text-sm">Receive Funds</span>
+                                    <span className="text-slate-500 text-[10px] font-medium uppercase tracking-wider">Show QR or address</span>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-500 group-hover:text-[#FF611A] transition-colors">chevron_right</span>
+                        </Link>
+
+                        <Link href="/activity" className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4 flex items-center justify-between hover:bg-[#262626] transition-colors group">
+                            <div className="flex items-center gap-4">
+                                <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
+                                    <span className="material-symbols-outlined text-[20px] text-slate-400">history</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-white font-bold text-sm">Transaction History</span>
+                                    <span className="text-slate-500 text-[10px] font-medium uppercase tracking-wider">View all activity</span>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-500 group-hover:text-[#FF611A] transition-colors">chevron_right</span>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Footer Badge */}
+                <div className="flex justify-center mb-4">
+                    <div className="flex items-center gap-2 rounded-full bg-[#262626]/50 px-4 py-2 border border-white/5">
+                        <span className="material-symbols-outlined text-[#FF611A] text-[14px] filled">shield</span>
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Secured by Arcium</span>
                     </div>
                 </div>
             </main>

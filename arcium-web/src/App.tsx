@@ -1,4 +1,4 @@
-import { Route, Switch, Redirect, Link } from 'wouter';
+import { Route, Switch, Redirect } from 'wouter';
 import Layout from './components/Layout';
 import Welcome from './pages/Welcome';
 import Dashboard from './pages/Dashboard';
@@ -10,6 +10,7 @@ import CreateWallet from './pages/CreateWallet';
 import ConfirmWallet from './pages/ConfirmWallet';
 import Profile from './pages/Profile';
 import ImportWallet from './pages/ImportWallet';
+import Settings from './pages/Settings';
 
 import { WalletProvider } from './context/WalletContext';
 
@@ -28,18 +29,7 @@ function App() {
           <Route path="/import-wallet" component={ImportWallet} />
           <Route path="/create-wallet" component={CreateWallet} />
           <Route path="/confirm-wallet" component={ConfirmWallet} />
-          <Route path="/settings">
-            <div className="p-8 text-center">
-              <h1 className="text-2xl font-bold mb-4">Settings</h1>
-              <p className="text-slate-400">Settings page coming soon...</p>
-              <Link
-                href="/dashboard"
-                className="mt-4 px-6 py-2 bg-primary rounded-lg text-white font-bold inline-block"
-              >
-                Back to Home
-              </Link>
-            </div>
-          </Route>
+          <Route path="/settings" component={Settings} />
           {/* Default redirect to welcome or dashboard */}
           <Route>
             <Redirect to="/" />

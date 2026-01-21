@@ -1,6 +1,18 @@
-import React from 'react';
-import { Link } from 'wouter';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'wouter';
+
 const Welcome: React.FC = () => {
+    const [, setLocation] = useLocation();
+
+    // Auto-redirect to dashboard if wallet credentials exist
+    useEffect(() => {
+        const storedAddress = localStorage.getItem('arcium_wallet_address');
+        const storedMnemonic = localStorage.getItem('arcium_mnemonic');
+        if (storedAddress && storedMnemonic) {
+            setLocation('/dashboard');
+        }
+    }, [setLocation]);
+
     return (
         <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-obsidian group/design-root">
             <div className="absolute inset-0 bg-mesh-gradient opacity-80 pointer-events-none"></div>
@@ -20,7 +32,8 @@ const Welcome: React.FC = () => {
                         <div className="absolute inset-0 border border-electric-purple/10  rounded-full scale-110"></div>
                         <div className="absolute inset-0 border border-neon-teal/5 rounded-full scale-125 border-dashed"></div>
                         <div className="absolute inset-0 bg-gradient-to-tr from-electric-purple/20 to-neon-teal/20 blur-[50px] rounded-full scale-75 animate-pulse-slow"></div>
-                        <div className="relative z-10 w-full h-full p-8 rounded-full bg-gradient-to-b from-white/5 to-transparent border border-white/5 backdrop-blur-sm shadow-2xl shadow-black/50 bg-contain bg-no-repeat bg-[url('/privypay.png')] relative z-20">
+                        <div className="relative z-20 w-full h-full p-8 rounded-full bg-gradient-to-b from-white/5 to-transparent border border-white/5 backdrop-blur-sm shadow-2xl shadow-black/50 flex items-center justify-center">
+                            <img src="/privypay.png" alt="PrivyPay" className="w-full h-full object-contain" />
                         </div>
                     </div>
 

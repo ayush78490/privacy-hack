@@ -37,6 +37,8 @@ interface WalletContextType {
     apiConnected: boolean;
     // Live price
     solPrice: number;
+    // Logout function
+    logout: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -169,6 +171,26 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [address, apiConnected, tokens]);
 
+    // Logout function - clears all stored data and resets state
+    const logout = useCallback(() => {
+        console.log('[WalletContext] Logging out...');
+        // Clear localStorage
+        localStorage.removeItem('arcium_wallet_address');
+        localStorage.removeItem('arcium_mnemonic');
+        // Reset all state
+        setWallet(null);
+        setAddress(null);
+        setMnemonic(null);
+        setOnChainBalance(0);
+        setOnChainUsdcBalance(0);
+        setShieldedBalance(0);
+        setShieldedUsdcBalance(0);
+        setShieldedTokenBalances([]);
+        setError(null);
+        // Dispatch event for any listeners
+        window.dispatchEvent(new Event('walletUpdate'));
+    }, []);
+
     // Effect for initial wallet hydration
     useEffect(() => {
         const hydrateWallet = () => {
@@ -250,7 +272,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             mnemonic,
             error,
             apiConnected,
-            solPrice
+            solPrice,
+            logout
         }}>
             {children}
         </WalletContext.Provider>

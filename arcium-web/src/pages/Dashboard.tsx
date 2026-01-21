@@ -117,9 +117,9 @@ const Dashboard: React.FC = () => {
                             </p>
                         </div>
                     </div>
-                    <button className="flex size-10 shrink-0 items-center justify-center rounded-full bg-transparent text-white hover:bg-white/5 transition-colors">
+                    <Link href="/settings" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-transparent text-white hover:bg-white/5 transition-colors">
                         <span className="material-symbols-outlined">settings</span>
-                    </button>
+                    </Link>
                 </div>
             </header>
 
@@ -386,7 +386,7 @@ const AssetItem: React.FC<{
         <div className="flex items-center gap-4">
             <div className="relative flex size-10 shrink-0 items-center justify-center rounded-full shadow-inner" style={{ backgroundColor: color }}>
                 {logo ? (
-                    <img alt={name} className="w-6 h-6 object-contain" src={logo} />
+                    <img alt={name} className="w-6 h-6 object-contain rounded-full" src={logo} />
                 ) : (
                     <span className="text-white font-bold text-sm">{name[0]}</span>
                 )}

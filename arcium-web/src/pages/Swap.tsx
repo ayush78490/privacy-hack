@@ -318,14 +318,6 @@ const Swap: React.FC = () => {
             </div>
 
             <div className="flex flex-col flex-1 px-4 py-6 max-w-md mx-auto w-full relative z-10">
-                {/* Network Badge */}
-                <div className="flex justify-center mb-4">
-                    <div className="inline-flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-[#1a1a1a] border border-white/10 shadow-lg">
-                        <img src={TOKEN_LOGOS.SOL} alt="Solana" className="w-5 h-5 rounded-full" />
-                        <span className="text-xs font-medium text-gray-300">Solana Mainnet</span>
-                        <span className="material-symbols-outlined text-[#FF611A]" style={{ fontSize: '16px' }}>verified</span>
-                    </div>
-                </div>
 
                 {/* Swap Mode Toggle */}
                 <div className="flex items-center justify-center gap-2 mb-4">
@@ -343,26 +335,6 @@ const Swap: React.FC = () => {
                         <span className="material-symbols-outlined text-[16px] filled">shield</span>
                         Private Swap
                     </button>
-                </div>
-
-                {/* Mode Info Banner */}
-                <div className={`mb-4 rounded-xl p-3 border ${swapMode === 'private' ? 'bg-[#FF611A]/5 border-[#FF611A]/20' : 'bg-green-500/5 border-green-500/20'}`}>
-                    <div className="flex items-start gap-2">
-                        <span className={`material-symbols-outlined text-[18px] ${swapMode === 'private' ? 'text-[#FF611A]' : 'text-green-400'}`}>
-                            {swapMode === 'private' ? 'shield' : 'bolt'}
-                        </span>
-                        <div>
-                            <p className={`font-bold text-xs mb-0.5 ${swapMode === 'private' ? 'text-[#FF611A]' : 'text-green-400'}`}>
-                                {swapMode === 'private' ? 'Private Swap (ShadowWire)' : 'Normal Swap (Jupiter)'}
-                            </p>
-                            <p className="text-slate-400 text-[11px]">
-                                {swapMode === 'private'
-                                    ? 'Amount hidden via ZK proof. Pending backend integration.'
-                                    : 'Standard on-chain swap via Jupiter aggregator. Best rates, visible on explorer.'
-                                }
-                            </p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Tokens Count */}
@@ -518,26 +490,7 @@ const Swap: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Route Info */}
-                        <div className="bg-black/30 border-t border-white/5 p-3 flex items-center justify-between relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#FF611A]/5 via-transparent to-[#FF611A]/5"></div>
-                            <div className="flex items-center gap-2 z-10">
-                                <div className="p-1 rounded bg-[#FF611A]/10 border border-[#FF611A]/20">
-                                    <span className="material-symbols-outlined text-[#FF611A] animate-pulse" style={{ fontSize: '16px' }}>hub</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Route</span>
-                                    <span className="text-xs font-semibold text-white">ShadowWire + Jupiter</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 z-10 opacity-80">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF611A] shadow-[0_0_5px_rgba(255,97,26,0.5)]"></span>
-                                <div className="w-3 h-[1px] bg-slate-700"></div>
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF8A50]"></span>
-                                <div className="w-3 h-[1px] bg-slate-700"></div>
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#FF611A] shadow-[0_0_5px_rgba(255,97,26,0.5)]"></span>
-                            </div>
-                        </div>
+                        
                     </div>
                 </div>
 
@@ -577,9 +530,9 @@ const Swap: React.FC = () => {
 
                 {/* Swap Button */}
                 <div className="mt-4 mb-6 relative group">
-                    <div className={`absolute -inset-0.5 ${swapMode === 'private' ? 'bg-[#FF611A]' : 'bg-green-500'} rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse-slow`}></div>
+                    <div className={`absolute -inset-0.5 ${swapMode === 'private' ? 'bg-[#FF611A]' : 'bg-[#FF611A]'} rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse-slow`}></div>
                     <button
-                        className={`relative w-full h-14 rounded-xl overflow-hidden ${swapMode === 'private' ? 'bg-[#FF611A]' : 'bg-green-500'} shadow-xl active:scale-[0.98] transition-all border border-white/10 disabled:opacity-50 disabled:grayscale`}
+                        className={`relative w-full h-14 rounded-xl overflow-hidden ${swapMode === 'private' ? 'bg-[#FF611A]' : 'bg-[#FF611A]'} shadow-xl active:scale-[0.98] transition-all border border-white/10 disabled:opacity-50 disabled:grayscale`}
                         onClick={handlePrepareSwap}
                         disabled={loading || !fromAmount || parseFloat(fromAmount) <= 0}
                     >
@@ -725,8 +678,8 @@ const Swap: React.FC = () => {
                         <h3 className="text-2xl font-bold text-white mb-2">{swapMode === 'normal' ? 'Swap Complete!' : 'Authorization Signed!'}</h3>
                         <p className="text-slate-400 text-sm mb-2">{swapMode === 'normal' ? 'Your swap executed on-chain successfully.' : 'Your swap authorization has been cryptographically signed.'}</p>
                         <div className="flex justify-center mb-4">
-                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${swapMode === 'normal' ? 'bg-green-500/10 border-green-500/20' : 'bg-amber-500/10 border-amber-500/20'} border`}>
-                                <span className={`w-2 h-2 rounded-full ${swapMode === 'normal' ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${swapMode === 'normal' ? 'bg-[#FF611A]/10 border-green-500/20' : 'bg-amber-500/10 border-amber-500/20'} border`}>
+                                <span className={`w-2 h-2 rounded-full ${swapMode === 'normal' ? 'bg-[#FF611A]' : 'bg-amber-500 animate-pulse'}`}></span>
                                 <span className={`text-xs font-bold ${swapMode === 'normal' ? 'text-green-400' : 'text-amber-400'}`}>
                                     {swapMode === 'normal' ? 'Confirmed on Solana' : 'Pending Backend Processing'}
                                 </span>

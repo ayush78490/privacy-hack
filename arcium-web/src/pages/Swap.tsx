@@ -28,7 +28,19 @@ interface SwapPreview {
 }
 
 const Swap: React.FC = () => {
-    const { wallet, address, balance, usdcBalance, tokenBalances, tokens: contextTokens, apiConnected, refreshBalance, solPrice } = useWallet();
+    const {
+        wallet,
+        address,
+        balance,
+        usdcBalance,
+        tokenBalances,
+        tokens: contextTokens,
+        refreshBalance,
+        solPrice,
+        isAnonymousMode,
+        getActiveWallet,
+        getActiveAddress
+    } = useWallet();
     const [swapTokens, setSwapTokens] = useState<api.Token[]>([]);
     const [fromToken, setFromToken] = useState('SOL');
     const [toToken, setToToken] = useState('USDC');
@@ -45,8 +57,7 @@ const Swap: React.FC = () => {
     const [txHash, setTxHash] = useState<string | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // Swap mode: 'normal' = on-chain via Jupiter, 'private' = ShadowWire
-    const [swapMode, setSwapMode] = useState<'normal' | 'private'>('normal');
+    // Swap mode removed - all swaps now go through Jupiter on-chain
 
     // Fetch tokens from backend on mount
     useEffect(() => {
@@ -72,10 +83,15 @@ const Swap: React.FC = () => {
         fetchTokens();
     }, [contextTokens]);
 
-    // Get balance for selected token
+    // Get balance for selected token based on mode
     const getTokenBalance = (symbol: string): number => {
-        if (symbol === 'SOL') return balance;
-        if (symbol === 'USDC') return usdcBalance;
+        if (isAnonymousMode) {
+            // In anonymous mode, use main wallet balance for funding
+            if (symbol === 'SOL') return balance;
+        } else {
+            if (symbol === 'SOL') return balance;
+            if (symbol === 'USDC') return usdcBalance;
+        }
         const tb = tokenBalances.find(t => t.symbol === symbol);
         return tb?.balanceFormatted || 0;
     };
@@ -118,19 +134,14 @@ const Swap: React.FC = () => {
         setFromAmount(bal.toString());
     };
 
-    // Generate signature message
-    const generateSignatureMessage = (): string => {
-        const timestamp = Date.now();
-        return `ShadowWire Swap\n\nFrom: ${fromAmount} ${fromToken}\nTo: ${toAmount} ${toToken}\nRoute: ShadowWire + Jupiter\nTimestamp: ${timestamp}\n\nSign to approve this swap.`;
-    };
-
-    // Sign message with wallet
+    // Sign message with active wallet
     const signMessage = async (message: string): Promise<string> => {
-        if (!wallet) throw new Error('Wallet not available');
+        const activeWallet = getActiveWallet();
+        if (!activeWallet) throw new Error('Wallet not available');
         const messageBytes = new TextEncoder().encode(message);
         // Use nacl to sign with the wallet's secret key
         const nacl = await import('tweetnacl');
-        const signature = nacl.sign.detached(messageBytes, wallet.secretKey);
+        const signature = nacl.sign.detached(messageBytes, activeWallet.secretKey);
         return bs58.encode(signature);
     };
 
@@ -146,37 +157,21 @@ const Swap: React.FC = () => {
             return;
         }
 
-        if (!address) {
+        const activeAddress = getActiveAddress();
+        if (!activeAddress) {
             alert('Please connect your wallet first');
             return;
         }
 
-        const message = generateSignatureMessage();
-
-        // For Normal swap, execute immediately on-chain
-        if (swapMode === 'normal') {
-            await handleNormalSwap();
-            return;
-        }
-
-        // For Private swap, show approval modal
-        const preview: SwapPreview = {
-            fromToken,
-            toToken,
-            fromAmount,
-            toAmount: toAmount || '0',
-            route: 'ShadowWire + Jupiter',
-            estimatedFee: '0.00005 SOL',
-            message,
-        };
-
-        setSwapPreview(preview);
-        setShowApprovalModal(true);
+        // Execute on-chain swap via Jupiter
+        await handleNormalSwap();
     };
 
     // Execute normal on-chain swap using Jupiter
     const handleNormalSwap = async () => {
-        if (!wallet || !address) return;
+        const activeWallet = getActiveWallet();
+        const activeAddress = getActiveAddress();
+        if (!activeWallet || !activeAddress) return;
 
         const amount = parseFloat(fromAmount);
         if (isNaN(amount) || amount <= 0) {
@@ -195,7 +190,7 @@ const Swap: React.FC = () => {
             // Execute real swap via Jupiter
             const result = await executeJupiterSwap(
                 connection,
-                wallet,
+                activeWallet,
                 fromToken,
                 toToken,
                 amount,
@@ -216,7 +211,7 @@ const Swap: React.FC = () => {
             setShowSuccessModal(true);
 
             // Save transaction to local store
-            txStore.addTransaction(address, {
+            txStore.addTransaction(activeAddress, {
                 type: 'swap',
                 status: 'confirmed',
                 fromToken,
@@ -297,17 +292,11 @@ const Swap: React.FC = () => {
                     </Link>
                 </div>
                 <div className="flex flex-col items-center">
-                    <h2 className="text-lg font-bold leading-tight tracking-wide text-white">
-                        {swapMode === 'private' ? 'Private Swap' : 'Swap'}
-                    </h2>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="relative flex h-2 w-2">
-                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${apiConnected ? 'bg-[#FF611A]' : 'bg-amber-400'} opacity-75`}></span>
-                            <span className={`relative inline-flex rounded-full h-2 w-2 ${apiConnected ? 'bg-[#FF611A]' : 'bg-amber-500'}`}></span>
-                        </span>
-                        <span className={`text-[10px] ${apiConnected ? 'text-[#FF611A]' : 'text-amber-400'} uppercase tracking-widest font-semibold`}>
-                            {apiConnected ? 'ShadowWire Active' : 'RPC Mode'}
-                        </span>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-bold leading-tight tracking-wide text-white">Swap</h2>
+                        {isAnonymousMode && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FF611A]/20 text-[#FF611A]">ANON</span>
+                        )}
                     </div>
                 </div>
                 <div className="w-12 flex justify-end">
@@ -318,24 +307,17 @@ const Swap: React.FC = () => {
             </div>
 
             <div className="flex flex-col flex-1 px-4 py-6 max-w-md mx-auto w-full relative z-10">
+                {/* Anonymous Mode Banner */}
+                {isAnonymousMode && (
+                    <div className="bg-gradient-to-r from-[#FF611A]/20 to-amber-500/10 border border-[#FF611A]/30 rounded-xl p-3 mb-4 flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[#FF611A]">visibility_off</span>
+                        <div className="flex-1">
+                            <p className="text-[10px] text-[#FF611A] font-bold uppercase tracking-wider">Anonymous Mode Active</p>
+                            <p className="text-[10px] text-white/60">Swaps use main wallet balance</p>
+                        </div>
+                    </div>
+                )}
 
-                {/* Swap Mode Toggle */}
-                <div className="flex items-center justify-center gap-2 mb-4">
-                    <button
-                        onClick={() => setSwapMode('normal')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${swapMode === 'normal' ? 'bg-[#FF611A] text-white shadow-[0_0_20px_rgba(255,97,26,0.3)]' : 'bg-[#1a1a1a] text-slate-400 hover:bg-[#262626] border border-white/10'}`}
-                    >
-                        <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
-                        Normal Swap
-                    </button>
-                    <button
-                        onClick={() => setSwapMode('private')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${swapMode === 'private' ? 'bg-[#FF611A] text-white shadow-[0_0_20px_rgba(255,97,26,0.3)]' : 'bg-[#1a1a1a] text-slate-400 hover:bg-[#262626] border border-white/10'}`}
-                    >
-                        <span className="material-symbols-outlined text-[16px] filled">shield</span>
-                        Private Swap
-                    </button>
-                </div>
 
                 {/* Tokens Count */}
                 <div className="flex justify-center mb-4">
@@ -490,7 +472,7 @@ const Swap: React.FC = () => {
                             </div>
                         </div>
 
-                        
+
                     </div>
                 </div>
 
@@ -512,37 +494,20 @@ const Swap: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Privacy Strength - Only for Private Swap */}
-                {swapMode === 'private' && (
-                    <div className="mt-6 mb-4">
-                        <div className="flex justify-between items-end mb-2 px-1">
-                            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Privacy Strength</span>
-                            <div className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-[#FF611A] filled" style={{ fontSize: '16px' }}>shield</span>
-                                <span className="text-xs text-[#FF611A] font-bold uppercase tracking-wider">Untraceable</span>
-                            </div>
-                        </div>
-                        <div className="h-3 w-full bg-[#1a1a1a] rounded-full overflow-hidden p-[2px] shadow-inner border border-white/5">
-                            <div className="h-full w-full rounded-full bg-gradient-to-r from-[#FF611A] via-[#FF8A50] to-[#FF611A] animate-pulse"></div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Swap Button */}
                 <div className="mt-4 mb-6 relative group">
-                    <div className={`absolute -inset-0.5 ${swapMode === 'private' ? 'bg-[#FF611A]' : 'bg-[#FF611A]'} rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse-slow`}></div>
+                    <div className="absolute -inset-0.5 bg-[#FF611A] rounded-xl group-hover:opacity-60"></div>
                     <button
-                        className={`relative w-full h-14 rounded-xl overflow-hidden ${swapMode === 'private' ? 'bg-[#FF611A]' : 'bg-[#FF611A]'} shadow-xl active:scale-[0.98] transition-all border border-white/10 disabled:opacity-50 disabled:grayscale`}
                         onClick={handlePrepareSwap}
                         disabled={loading || !fromAmount || parseFloat(fromAmount) <= 0}
+                        className={`w-full ${loading ? 'opacity-50 grayscale' : 'bg-[#FF611A]'} text-white font-bold h-[60px] rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-[0_0_30px_rgba(255,97,26,0.35)] hover:shadow-[0_0_45px_rgba(255,97,26,0.5)] relative overflow-hidden group`}
                     >
-                        <div className="relative flex items-center justify-center gap-3 text-white z-10">
-                            <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
-                                {swapMode === 'private' ? 'shield' : 'swap_horiz'}
-                            </span>
-                            <span className="text-lg font-bold tracking-wide">
-                                {swapMode === 'private' ? 'Review & Sign' : 'Swap Now'}
-                            </span>
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 blur-md"></div>
+
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                            <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>swap_horiz</span>
+                            <span className="text-lg font-bold tracking-wide">Swap Now</span>
                         </div>
                     </button>
                 </div>
@@ -672,22 +637,20 @@ const Swap: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                     <div className="bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#FF611A]/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[#FF611A] text-[48px] filled">{swapMode === 'normal' ? 'check_circle' : 'verified'}</span>
+                            <img src="/privypay.png" alt="PrivyPay" className="w-12 h-12 object-contain" />
                         </div>
 
-                        <h3 className="text-2xl font-bold text-white mb-2">{swapMode === 'normal' ? 'Swap Complete!' : 'Authorization Signed!'}</h3>
-                        <p className="text-slate-400 text-sm mb-2">{swapMode === 'normal' ? 'Your swap executed on-chain successfully.' : 'Your swap authorization has been cryptographically signed.'}</p>
+                        <h3 className="text-2xl font-bold text-white mb-2">Swap Complete!</h3>
+                        <p className="text-slate-400 text-sm mb-2">Your swap executed on-chain successfully.</p>
                         <div className="flex justify-center mb-4">
-                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${swapMode === 'normal' ? 'bg-[#FF611A]/10 border-green-500/20' : 'bg-amber-500/10 border-amber-500/20'} border`}>
-                                <span className={`w-2 h-2 rounded-full ${swapMode === 'normal' ? 'bg-[#FF611A]' : 'bg-amber-500 animate-pulse'}`}></span>
-                                <span className={`text-xs font-bold ${swapMode === 'normal' ? 'text-green-400' : 'text-amber-400'}`}>
-                                    {swapMode === 'normal' ? 'Confirmed on Solana' : 'Pending Backend Processing'}
-                                </span>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF611A]/10 border-green-500/20 border">
+                                <span className="w-2 h-2 rounded-full bg-[#FF611A]"></span>
+                                <span className="text-xs font-bold text-green-400">Confirmed on Solana</span>
                             </div>
                         </div>
 
                         <div className="bg-[#121212] rounded-xl p-4 mb-6">
-                            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">{swapMode === 'normal' ? 'Transaction Hash' : 'Digital Signature'}</p>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">Transaction Hash</p>
                             <p className="text-[#FF611A] font-mono text-xs break-all">{txHash}</p>
                         </div>
 

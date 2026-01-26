@@ -106,7 +106,7 @@ const Activity: React.FC = () => {
             </div>
 
             <header className="flex-none sticky top-0 z-20 backdrop-blur-xl bg-[#121212]/60 border-b border-white/5">
-                <div className="flex items-center px-4 pt-12 pb-4 justify-between">
+                <div className="flex items-center px-4 pt-12 pb-4 justify-between max-w-md mx-auto">
                     <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
@@ -125,7 +125,7 @@ const Activity: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar pb-24 relative z-10">
+            <main className="flex-1 overflow-y-auto no-scrollbar pb-24 relative z-10 max-w-md mx-auto w-full">
                 {/* Tab Selector */}
                 <div className="px-4 py-4">
                     <div className="flex bg-[#1a1a1a] rounded-xl p-1 border border-white/10">
@@ -146,7 +146,7 @@ const Activity: React.FC = () => {
                             onClick={() => setActiveTab('private')}
                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1 ${activeTab === 'private' ? 'bg-[#FF611A] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                         >
-                            <span className="material-symbols-outlined text-[14px] filled">shield</span>
+                            <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
                             Private
                         </button>
                     </div>
@@ -155,9 +155,10 @@ const Activity: React.FC = () => {
                 {/* Status Badge */}
                 <div className="px-4 pb-4">
                     <div className={`flex items-center justify-center gap-2 py-1.5 px-4 rounded-full w-fit mx-auto border ${activeTab === 'private' ? 'bg-[#FF611A]/5 border-[#FF611A]/20' : activeTab === 'normal' ? 'bg-green-500/5 border-green-500/20' : 'bg-white/5 border-white/10'}`}>
-                        <span className={`material-symbols-outlined text-[16px] filled ${activeTab === 'private' ? 'text-[#FF611A]' : activeTab === 'normal' ? 'text-green-400' : 'text-slate-400'}`}>
-                            {activeTab === 'private' ? 'shield_lock' : activeTab === 'normal' ? 'public' : 'history'}
+                        <span className={`material-symbols-outlined text-[16px] ${activeTab === 'private' ? 'hidden' : 'filled'} ${activeTab === 'normal' ? 'text-green-400' : 'text-slate-400'}`}>
+                            {activeTab === 'normal' ? 'public' : 'history'}
                         </span>
+                        {activeTab === 'private' && <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />}
                         <p className={`text-[11px] font-semibold tracking-widest uppercase ${activeTab === 'private' ? 'text-[#FF611A]' : activeTab === 'normal' ? 'text-green-400' : 'text-slate-400'}`}>
                             {activeTab === 'private' ? `${privateTransactions.length} Private` : activeTab === 'normal' ? `${normalTransactions.length} On-Chain` : `${displayTransactions.length} Total`}
                         </p>
@@ -189,9 +190,11 @@ const Activity: React.FC = () => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.isPrivate ? 'bg-[#FF611A]/20' : 'bg-green-500/10'}`}>
-                                            <span className={`material-symbols-outlined ${tx.isPrivate ? 'text-[#FF611A]' : 'text-green-400'}`}>
-                                                {tx.isPrivate ? 'shield' : 'swap_horiz'}
-                                            </span>
+                                            {tx.isPrivate ? (
+                                                <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-green-400">swap_horiz</span>
+                                            )}
                                         </div>
                                         <div>
                                             <p className="text-white font-medium">
@@ -228,9 +231,11 @@ const Activity: React.FC = () => {
                 ) : (
                     <div className="flex flex-col items-center justify-center py-16 px-4">
                         <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${activeTab === 'private' ? 'bg-[#FF611A]/10' : 'bg-[#1a1a1a]'}`}>
-                            <span className={`material-symbols-outlined text-[36px] ${activeTab === 'private' ? 'text-[#FF611A]' : 'text-slate-500'}`}>
-                                {activeTab === 'private' ? 'shield' : 'receipt_long'}
-                            </span>
+                            {activeTab === 'private' ? (
+                                <img src="/privypay.png" alt="PrivyPay" className="w-9 h-9 object-contain" />
+                            ) : (
+                                <span className="material-symbols-outlined text-[36px] text-slate-500">receipt_long</span>
+                            )}
                         </div>
                         <h3 className="text-white text-lg font-bold mb-2">
                             {activeTab === 'private' ? 'No Private Transactions' : 'No Transactions Yet'}
@@ -249,31 +254,7 @@ const Activity: React.FC = () => {
                 )}
             </main>
 
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 z-30 backdrop-blur-xl bg-[#121212]/90 border-t border-white/5">
-                <div className="flex items-center justify-around h-16 max-w-md mx-auto">
-                    <Link href="/dashboard" className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[22px]">home</span>
-                        <span className="text-[10px] font-medium">Home</span>
-                    </Link>
-                    <Link href="/swap" className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[22px]">swap_horiz</span>
-                        <span className="text-[10px] font-medium">Swap</span>
-                    </Link>
-                    <Link href="/activity" className="flex flex-col items-center gap-1 p-2 text-[#FF611A]">
-                        <span className="material-symbols-outlined text-[22px] filled">receipt_long</span>
-                        <span className="text-[10px] font-medium">Activity</span>
-                    </Link>
-                    <Link href="/send" className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[22px]">send</span>
-                        <span className="text-[10px] font-medium">Send</span>
-                    </Link>
-                    <Link href="/profile" className="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-white transition-colors">
-                        <span className="material-symbols-outlined text-[22px]">settings</span>
-                        <span className="text-[10px] font-medium">Settings</span>
-                    </Link>
-                </div>
-            </nav>
+
         </div>
     );
 };

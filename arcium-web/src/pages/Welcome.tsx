@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
+import { useWallet } from '../context/WalletContext';
 
 const Welcome: React.FC = () => {
     const [, setLocation] = useLocation();
+    const { generateNewAnonymousWallet, switchToAnonymousMode } = useWallet();
 
     // Auto-redirect to dashboard if wallet credentials exist
     useEffect(() => {
@@ -12,6 +14,16 @@ const Welcome: React.FC = () => {
             setLocation('/dashboard');
         }
     }, [setLocation]);
+
+    // Handle anonymous wallet creation and redirect
+    const handleUseAnonymousWallet = () => {
+        // Generate a new anonymous wallet (auto-saves to history)
+        generateNewAnonymousWallet();
+        // Switch to anonymous mode
+        switchToAnonymousMode();
+        // Redirect to dashboard
+        setLocation('/dashboard');
+    };
 
     return (
         <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-obsidian group/design-root">
@@ -49,6 +61,7 @@ const Welcome: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col w-full gap-4 pb-8">
+                    {/* Create New Wallet Button */}
                     <Link href="/create-wallet" className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl h-16 p-[1px] shadow-glow transition-all active:scale-[0.98]">
                         <span className="absolute inset-0 bg-gradient-to-r from-electric-purple via-neon-teal to-electric-purple opacity-70 group-hover:opacity-100 transition-opacity duration-300"></span>
                         <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-charcoal/90 backdrop-blur-xl transition-all group-hover:bg-charcoal/80">
@@ -56,6 +69,20 @@ const Welcome: React.FC = () => {
                             <span className="material-symbols-outlined ml-2 text-white/80 group-hover:translate-x-1 transition-transform">arrow_forward</span>
                         </div>
                     </Link>
+
+                    {/* Use Anonymous Wallet Button */}
+                    <button
+                        onClick={handleUseAnonymousWallet}
+                        className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl h-14 p-[1px] transition-all active:scale-[0.98]"
+                    >
+                        <span className="absolute inset-0 bg-gradient-to-r from-[#FF611A] via-amber-500 to-[#FF611A] opacity-60 group-hover:opacity-100 transition-opacity duration-300"></span>
+                        <div className="relative flex h-full w-full items-center justify-center rounded-2xl bg-charcoal/95 backdrop-blur-xl transition-all group-hover:bg-charcoal/85 gap-2">
+                            <span className="material-symbols-outlined text-[#FF611A] text-xl">visibility_off</span>
+                            <span className="text-white text-base font-bold tracking-wide">Use Anonymous Wallet</span>
+                        </div>
+                    </button>
+
+                    {/* Import Wallet Button */}
                     <Link href="/import-wallet" className="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl h-14 px-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all text-zinc-400 hover:text-white text-sm font-semibold tracking-wide backdrop-blur-md">
                         <span className="truncate">I already have a wallet</span>
                     </Link>

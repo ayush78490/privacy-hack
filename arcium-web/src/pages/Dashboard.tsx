@@ -36,7 +36,13 @@ const Dashboard: React.FC = () => {
         loading,
         error,
         apiConnected,
-        solPrice
+        solPrice,
+        userProfilePic,
+        isAnonymousMode,
+        anonymousBalance,
+        anonymousAddress,
+        switchToMainWallet,
+        getActiveAddress
     } = useWallet();
 
     const [showDepositModal, setShowDepositModal] = useState(false);
@@ -52,9 +58,12 @@ const Dashboard: React.FC = () => {
         }
     }, [address, refreshBalance]);
 
-    // Calculate total balances
-    const totalOnChainUsd = (onChainBalance * solPrice) + onChainUsdcBalance;
+    // Calculate total balances based on mode
+    const currentBalance = isAnonymousMode ? anonymousBalance : onChainBalance;
+    const currentUsdcBalance = isAnonymousMode ? 0 : onChainUsdcBalance;
+    const totalOnChainUsd = (currentBalance * solPrice) + currentUsdcBalance;
     const totalShieldedUsd = (shieldedBalance * solPrice) + shieldedUsdcBalance;
+    const activeAddress = getActiveAddress();
 
     // Handle deposit
     const handleDeposit = async () => {
@@ -96,24 +105,26 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 bg-[#121212]">
-            {/* Background blobs */}
-            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-[#FF611A]/10 rounded-full blur-[100px]"></div>
-                <div className="absolute bottom-[20%] right-[-20%] w-[60vw] h-[60vw] bg-[#FF611A]/5 rounded-full blur-[100px]"></div>
-            </div>
+        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+            <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
             <header className="sticky top-0 z-20 glass-panel border-b border-white/5 px-4 py-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between max-w-md mx-auto">
                     <Link href="/profile" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#262626] border border-white/10 overflow-hidden ring-1 ring-white/5 active:scale-90 transition-transform cursor-pointer">
-                        <img alt="User profile" className="h-full w-full object-cover" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky" />
+                        <img alt="User profile" className="h-full w-full object-cover" src={userProfilePic} />
                     </Link>
                     <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#FF611A] text-[20px] drop-shadow-[0_0_8px_rgba(255,97,26,0.5)] filled">shield</span>
+                        <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain drop-shadow-[0_0_8px_rgba(255,97,26,0.5)]" />
                         <div className="flex flex-col">
-                            <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Shielded</h2>
+                            <div className="flex items-center gap-1.5">
+                                <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Shielded</h2>
+                                {isAnonymousMode && (
+                                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#FF611A]/20 text-[#FF611A]">ANON</span>
+                                )}
+                            </div>
                             <p className="text-[10px] text-slate-500 font-mono">
-                                {address ? `${address.slice(0, 4)}...${address.slice(-4)}` : 'No wallet'}
+                                {activeAddress ? `${activeAddress.slice(0, 4)}...${activeAddress.slice(-4)}` : 'No wallet'}
                             </p>
                         </div>
                     </div>
@@ -123,7 +134,26 @@ const Dashboard: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 pt-6">
+            <main className="flex-1 px-4 pt-6 max-w-md mx-auto w-full">
+                {/* Anonymous Mode Banner */}
+                {isAnonymousMode && (
+                    <div className="mb-4 rounded-2xl bg-gradient-to-r from-[#FF611A]/20 to-amber-500/10 border border-[#FF611A]/30 p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-[#FF611A]">visibility_off</span>
+                            <div>
+                                <p className="text-[10px] text-[#FF611A] font-bold uppercase tracking-wider">Anonymous Mode</p>
+                                <p className="text-[10px] text-white/60">Temp wallet: {anonymousAddress?.slice(0, 6)}...{anonymousAddress?.slice(-4)}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={switchToMainWallet}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/30 transition-colors border border-emerald-500/30"
+                        >
+                            Switch to Main
+                        </button>
+                    </div>
+                )}
+
                 {error && (
                     <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-red-500 text-xs font-medium flex items-center gap-2">
                         <span className="material-symbols-outlined text-[16px]">error</span>
@@ -131,28 +161,22 @@ const Dashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* API Status */}
-                <div className="mb-4 flex items-center justify-center">
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${apiConnected ? 'bg-[#FF611A]/10 border-[#FF611A]/20' : 'bg-amber-500/10 border-amber-500/20'} border`}>
-                        <div className={`w-2 h-2 rounded-full ${apiConnected ? 'bg-[#FF611A]' : 'bg-amber-500'} animate-pulse`}></div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${apiConnected ? 'text-[#FF611A]' : 'text-amber-500'}`}>
-                            {apiConnected ? 'ShadowWire Connected' : 'RPC Mode'}
-                        </span>
-                    </div>
-                </div>
-
                 {/* Dual Balance Cards */}
                 <div className="grid grid-cols-2 gap-3 mb-6">
-                    {/* On-Chain Balance */}
+                    {/* On-Chain / Anonymous Balance */}
                     <div className="rounded-2xl border border-white/10 bg-[#1a1a1a] p-4 shadow-lg">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="material-symbols-outlined text-white/60 text-[16px]">account_balance_wallet</span>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">On-Chain</p>
+                            <span className="material-symbols-outlined text-white/60 text-[16px]">
+                                {isAnonymousMode ? 'visibility_off' : 'account_balance_wallet'}
+                            </span>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                {isAnonymousMode ? 'Anonymous' : 'On-Chain'}
+                            </p>
                         </div>
                         <p className="text-white text-xl font-bold mb-1">
                             ${totalOnChainUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
-                        <p className="text-slate-500 text-[10px]">{onChainBalance.toFixed(6)} SOL</p>
+                        <p className="text-slate-500 text-[10px]">{currentBalance.toFixed(6)} SOL</p>
                     </div>
 
                     {/* Shielded Balance */}
@@ -160,7 +184,7 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-br from-[#FF611A]/10 to-transparent"></div>
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="material-symbols-outlined text-[#FF611A] text-[16px] filled">shield</span>
+                                <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
                                 <p className="text-[10px] text-[#FF611A] font-bold uppercase tracking-widest">Shielded</p>
                             </div>
                             <p className="text-white text-xl font-bold mb-1">
@@ -242,7 +266,7 @@ const Dashboard: React.FC = () => {
                     {apiConnected && (
                         <>
                             <p className="text-[10px] text-[#FF611A] uppercase tracking-widest px-1 mt-4 flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[12px] filled">shield</span>
+                                <img src="/privypay.png" alt="PrivyPay" className="w-3 h-3 object-contain" />
                                 Shielded Balance
                             </p>
                             <AssetItem
@@ -281,7 +305,7 @@ const Dashboard: React.FC = () => {
 
                 <div className="mt-8 flex justify-center pb-6">
                     <div className="flex items-center gap-2 rounded-full bg-[#262626]/50 px-4 py-2 border border-white/5">
-                        <span className="material-symbols-outlined text-[#FF611A] text-[14px]">verified_user</span>
+                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
                         <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Zero-Knowledge Proof Verified</span>
                     </div>
                 </div>
@@ -391,8 +415,8 @@ const AssetItem: React.FC<{
                     <span className="text-white font-bold text-sm">{name[0]}</span>
                 )}
                 {badge === 'shielded' && (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#FF611A] flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white text-[10px] filled">shield</span>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#FF611A] flex items-center justify-center p-0.5">
+                        <img src="/privypay.png" alt="PrivyPay" className="w-full h-full object-contain brightness-0 invert" />
                     </div>
                 )}
             </div>

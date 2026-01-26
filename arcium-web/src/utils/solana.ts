@@ -10,17 +10,47 @@ import {
 
 // [IMPORTANT] Public RPCs often block requests from localhost (leading to 403 Forbidden).
 // To fix this, get a FREE API Key from Helius (https://helius.dev) or QuickNode and paste it below.
-const CUSTOM_RPC_URL = 'https://mainnet.helius-rpc.com/?api-key=af4b15c2-240b-491b-865a-f7218750ddac';
+const CUSTOM_MAINNET_RPC = 'https://mainnet.helius-rpc.com/?api-key=af4b15c2-240b-491b-865a-f7218750ddac';
+const CUSTOM_DEVNET_RPC = 'https://devnet.helius-rpc.com/?api-key=af4b15c2-240b-491b-865a-f7218750ddac';
 
-// Fallback list of public endpoints
-const PUBLIC_ENDPOINTS = [
-    'https://api.mainnet-beta.solana.com', // Often rate limited
+// Mainnet endpoints
+const MAINNET_ENDPOINTS = [
+    CUSTOM_MAINNET_RPC,
+    'https://api.mainnet-beta.solana.com',
     'https://solana-api.projectserum.com',
     'https://rpc.ankr.com/solana'
-];
+].filter(url => url && url.length > 0);
 
-// Combine custom URL with public ones
-const RPC_ENDPOINTS = [CUSTOM_RPC_URL, ...PUBLIC_ENDPOINTS].filter(url => url && url.length > 0);
+// Devnet endpoints
+const DEVNET_ENDPOINTS = [
+    CUSTOM_DEVNET_RPC,
+    'https://api.devnet.solana.com',
+    'https://rpc.ankr.com/solana_devnet'
+].filter(url => url && url.length > 0);
+
+// Network mode storage key
+const NETWORK_MODE_KEY = 'arcium_network_mode';
+
+// Network mode type
+export type NetworkMode = 'mainnet' | 'devnet';
+
+// Get stored network mode or default to mainnet
+export const getNetworkMode = (): NetworkMode => {
+    const stored = localStorage.getItem(NETWORK_MODE_KEY);
+    return (stored === 'devnet') ? 'devnet' : 'mainnet';
+};
+
+// Set network mode
+export const setNetworkMode = (mode: NetworkMode): void => {
+    localStorage.setItem(NETWORK_MODE_KEY, mode);
+    currentRpcIndex = 0; // Reset RPC index when switching networks
+    console.log(`[Solana] Network switched to: ${mode}`);
+};
+
+// Get current RPC endpoints based on network mode
+const getRpcEndpoints = (): string[] => {
+    return getNetworkMode() === 'devnet' ? DEVNET_ENDPOINTS : MAINNET_ENDPOINTS;
+};
 
 let currentRpcIndex = 0;
 
@@ -28,7 +58,8 @@ let currentRpcIndex = 0;
  * Creates a connection to the Solana network
  */
 export const getConnection = (url?: string) => {
-    const targetUrl = url || RPC_ENDPOINTS[currentRpcIndex];
+    const endpoints = getRpcEndpoints();
+    const targetUrl = url || endpoints[currentRpcIndex % endpoints.length];
     return new Connection(targetUrl, {
         commitment: 'confirmed',
         confirmTransactionInitialTimeout: 60000,
@@ -40,8 +71,9 @@ export const getConnection = (url?: string) => {
  * Rotates to the next RPC if one fails
  */
 export const rotateRpc = () => {
-    currentRpcIndex = (currentRpcIndex + 1) % RPC_ENDPOINTS.length;
-    console.warn(`[Solana] Rotating RPC. Now using: ${RPC_ENDPOINTS[currentRpcIndex]}`);
+    const endpoints = getRpcEndpoints();
+    currentRpcIndex = (currentRpcIndex + 1) % endpoints.length;
+    console.warn(`[Solana] Rotating RPC. Now using: ${endpoints[currentRpcIndex]}`);
     return getConnection();
 };
 
@@ -52,8 +84,9 @@ const withRetry = async <T>(fn: (conn: Connection) => Promise<T>): Promise<T> =>
     let lastError: any;
 
     // Attempt each RPC in the list once
-    for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
-        const url = RPC_ENDPOINTS[currentRpcIndex];
+    const endpoints = getRpcEndpoints();
+    for (let i = 0; i < endpoints.length; i++) {
+        const url = endpoints[currentRpcIndex % endpoints.length];
         try {
             console.log(`[Solana] Attempting RPC call on: ${url}`);
             const conn = new Connection(url, 'confirmed');

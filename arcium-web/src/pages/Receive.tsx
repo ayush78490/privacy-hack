@@ -98,13 +98,11 @@ const Receive: React.FC = () => {
     return (
         <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 bg-[#121212]">
             {/* Background */}
-            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-                <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[#FF611A]/10 rounded-full blur-[100px]"></div>
-                <div className="absolute bottom-[20%] left-[-10%] w-[60vw] h-[60vw] bg-[#FF611A]/5 rounded-full blur-[120px]"></div>
-            </div>
+            <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
             <header className="sticky top-0 z-20 glass-panel border-b border-white/5 px-4 py-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between max-w-md mx-auto">
                     <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/5 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
@@ -113,14 +111,14 @@ const Receive: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 pt-6">
+            <main className="flex-1 px-4 pt-6 max-w-md mx-auto w-full">
                 {/* Receive Type Toggle */}
                 <div className="flex items-center justify-center gap-2 mb-6">
                     <button
                         onClick={() => setReceiveType('shielded')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${receiveType === 'shielded' ? 'bg-[#FF611A] text-white shadow-[0_0_20px_rgba(255,97,26,0.3)]' : 'bg-[#1a1a1a] text-slate-400 hover:bg-[#262626]'}`}
                     >
-                        <span className="material-symbols-outlined text-[16px] filled">shield</span>
+                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
                         Shielded
                     </button>
                     <button
@@ -135,9 +133,11 @@ const Receive: React.FC = () => {
                 {/* Info Banner */}
                 <div className={`mb-6 rounded-2xl p-4 border ${receiveType === 'shielded' ? 'bg-[#FF611A]/5 border-[#FF611A]/20' : 'bg-white/5 border-white/10'}`}>
                     <div className="flex items-start gap-3">
-                        <span className={`material-symbols-outlined text-[24px] ${receiveType === 'shielded' ? 'text-[#FF611A]' : 'text-white/60'} filled`}>
-                            {receiveType === 'shielded' ? 'shield' : 'info'}
-                        </span>
+                        {receiveType === 'shielded' ? (
+                            <img src="/privypay.png" alt="PrivyPay" className="w-6 h-6 object-contain" />
+                        ) : (
+                            <span className={`material-symbols-outlined text-[24px] text-white/60 filled`}>info</span>
+                        )}
                         <div>
                             <p className="text-white font-bold text-sm mb-1">
                                 {receiveType === 'shielded' ? 'Private Receive' : 'Standard Receive'}
@@ -163,8 +163,8 @@ const Receive: React.FC = () => {
                                     size={200}
                                     level="H"
                                     includeMargin={false}
-                                    fgColor="#121212"
-                                    bgColor="#ffffff"
+                                    fgColor="#ffffff"
+                                    bgColor="#121212"
                                 />
                             ) : (
                                 <div className="w-[200px] h-[200px] flex items-center justify-center bg-gray-100 rounded">
@@ -175,9 +175,11 @@ const Receive: React.FC = () => {
                             {/* Center logo overlay */}
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${receiveType === 'shielded' ? 'bg-[#FF611A]' : 'bg-[#121212]'}`}>
-                                    <span className="material-symbols-outlined text-white text-[24px] filled">
-                                        {receiveType === 'shielded' ? 'shield' : 'account_balance_wallet'}
-                                    </span>
+                                    {receiveType === 'shielded' ? (
+                                        <img src="/privypay.png" alt="PrivyPay" className="w-6 h-6 object-contain brightness-0 invert" />
+                                    ) : (
+                                        <span className="material-symbols-outlined text-white text-[24px] filled">account_balance_wallet</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -253,7 +255,7 @@ const Receive: React.FC = () => {
                 </div>
 
                 {/* Metadata Preview */}
-                <div className="glass-card rounded-2xl p-4 border border-white/5">
+                {/* <div className="glass-card rounded-2xl p-4 border border-white/5">
                     <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">QR Metadata</p>
                     <div className="bg-[#0f0f0f] rounded-xl p-3 font-mono text-[10px] text-slate-400 overflow-x-auto">
                         <pre className="whitespace-pre-wrap break-all">
@@ -271,7 +273,7 @@ const Receive: React.FC = () => {
                             )}
                         </pre>
                     </div>
-                </div>
+                </div> */}
             </main>
         </div>
     );

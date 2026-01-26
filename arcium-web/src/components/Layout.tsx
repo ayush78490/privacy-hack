@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import navLogo from '../assets/nav-logo.png';
+
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [location] = useLocation();
@@ -28,11 +28,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             <a className={`flex flex-col items-center gap-1 transition-colors group w-16 relative ${location === item.href ? 'text-brand-orange' : 'hover:text-white'}`}>
                                 {item.central ? (
                                     <>
-                                    <div className="absolute -top-10 rounded-full p-[2px] bg-gradient-to-b from-brand-orange to-brand-orange-light shadow-[0_0_20px_rgba(255,97,26,0.4)]">
-                                        <div className="bg-dark-bg rounded-full p-0.5 border border-white/10">
-                                            <img src={navLogo} alt="Activity" className="size-[50px] object-contain " />
+                                        <div className="absolute -top-10 rounded-full p-[2px] bg-gradient-to-b from-brand-orange to-brand-orange-light shadow-[0_0_20px_rgba(255,97,26,0.4)]">
+                                            <div className="bg-dark-bg rounded-full p-0.5 border border-white/10">
+                                                <img src="/privypay.png" alt="Activity" className="size-[50px] object-contain " />
+                                            </div>
                                         </div>
-                                    </div>
                                         <span className="text-[10px] font-bold mt-8 tracking-wide">{item.label}</span>
                                     </>
                                 ) : (

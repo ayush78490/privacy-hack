@@ -1,17 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useWallet } from '../context/WalletContext';
+import { getWalletHistory, TempWalletHistoryEntry, getPrivateKeyBase58 } from '../utils/anonymousWallet';
 
 const Settings: React.FC = () => {
-    const { address, mnemonic, apiConnected, logout, solPrice } = useWallet();
+    const {
+        address,
+        mnemonic,
+        apiConnected,
+        logout,
+        solPrice,
+        userName,
+        userProfilePic,
+        networkMode,
+        switchNetwork,
+        anonymousWallet,
+        anonymousAddress,
+        isAnonymousMode
+    } = useWallet();
     const [, setLocation] = useLocation();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showRecoveryPhrase, setShowRecoveryPhrase] = useState(false);
     const [confirmText, setConfirmText] = useState('');
+    const [showTempWalletHistory, setShowTempWalletHistory] = useState(false);
+    const [walletHistory, setWalletHistory] = useState<TempWalletHistoryEntry[]>([]);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const [copiedCurrentKey, setCopiedCurrentKey] = useState(false);
+
+    // Load wallet history
+    useEffect(() => {
+        setWalletHistory(getWalletHistory());
+    }, [showTempWalletHistory]);
 
     const handleLogout = () => {
         logout();
         setLocation('/');
+    };
+
+    const handleNetworkToggle = () => {
+        const newMode = networkMode === 'mainnet' ? 'devnet' : 'mainnet';
+        switchNetwork(newMode);
+    };
+
+    const copyToClipboard = async (text: string, index?: number) => {
+        await navigator.clipboard.writeText(text);
+        if (index !== undefined) {
+            setCopiedIndex(index);
+            setTimeout(() => setCopiedIndex(null), 2000);
+        } else {
+            setCopiedCurrentKey(true);
+            setTimeout(() => setCopiedCurrentKey(false), 2000);
+        }
     };
 
     const displayAddress = address
@@ -20,16 +59,16 @@ const Settings: React.FC = () => {
 
     const words = mnemonic ? mnemonic.split(' ') : [];
 
+    // Get current anonymous wallet private key
+    const currentAnonPrivateKey = anonymousWallet ? getPrivateKeyBase58(anonymousWallet) : null;
+
     return (
-        <div className="bg-dark-bg min-h-screen flex flex-col overflow-hidden text-gray-200 relative pb-24">
-            {/* Background blobs */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#FF611A]/10 rounded-full blur-[100px]"></div>
-                <div className="absolute bottom-[20%] left-[-10%] w-[60%] h-[60%] bg-emerald-900/10 rounded-full blur-[120px]"></div>
-            </div>
+        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+            <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
             <header className="flex-none sticky top-0 z-20 glass-panel border-b-0">
-                <div className="flex items-center px-4 pt-12 pb-4">
+                <div className="flex items-center px-4 pt-12 pb-4 max-w-md mx-auto">
                     <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
@@ -37,7 +76,7 @@ const Settings: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 px-4">
+            <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 px-4 max-w-md mx-auto w-full">
                 {/* Account Section */}
                 <div className="mb-6">
                     <h3 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 px-1">Account</h3>
@@ -48,12 +87,17 @@ const Settings: React.FC = () => {
                                     <img
                                         alt="User profile"
                                         className="h-full w-full object-cover"
-                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky"
+                                        src={userProfilePic}
                                     />
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-white font-bold text-sm">Arcium Explorer</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-white font-bold text-sm">{userName}</p>
+                                    {isAnonymousMode && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#FF611A]/20 text-[#FF611A]">ANON</span>
+                                    )}
+                                </div>
                                 <p className="text-slate-400 text-xs font-mono truncate">{displayAddress}</p>
                             </div>
                             <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${apiConnected ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
@@ -70,6 +114,104 @@ const Settings: React.FC = () => {
                             </div>
                             <span className="material-symbols-outlined text-slate-500 text-[20px]">chevron_right</span>
                         </Link>
+                    </div>
+                </div>
+
+                {/* Anonymous Wallet Section */}
+                <div className="mb-6">
+                    <h3 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 px-1">Anonymous Wallet</h3>
+                    <div className="glass-card rounded-2xl border border-white/5 overflow-hidden">
+                        {/* Current Session Temp Wallet */}
+                        {anonymousAddress && (
+                            <div className="p-4 border-b border-white/5">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[#FF611A] text-[20px]">visibility_off</span>
+                                        <span className="text-white text-sm font-medium">Current Session Wallet</span>
+                                    </div>
+                                    {isAnonymousMode && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">ACTIVE</span>
+                                    )}
+                                </div>
+                                <div className="bg-[#0a0a0a] rounded-xl p-3">
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Address</p>
+                                    <p className="text-xs font-mono text-white/80 truncate mb-3">{anonymousAddress}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Private Key</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-xs font-mono text-[#FF611A] truncate flex-1">
+                                            {currentAnonPrivateKey ? `${currentAnonPrivateKey.slice(0, 20)}...` : 'N/A'}
+                                        </p>
+                                        {currentAnonPrivateKey && (
+                                            <button
+                                                onClick={() => copyToClipboard(currentAnonPrivateKey)}
+                                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[14px] text-slate-400">
+                                                    {copiedCurrentKey ? 'check' : 'content_copy'}
+                                                </span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-amber-400/70 mt-2 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">info</span>
+                                    This wallet is regenerated on each app restart
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Temp Wallet History */}
+                        <button
+                            onClick={() => setShowTempWalletHistory(!showTempWalletHistory)}
+                            className="w-full p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className="material-symbols-outlined text-slate-400 text-[20px]">history</span>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-white text-sm font-medium">Temp Wallet History</span>
+                                    <span className="text-slate-500 text-[10px]">Last 10 anonymous wallets</span>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-500 text-[20px]">
+                                {showTempWalletHistory ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </button>
+
+                        {showTempWalletHistory && (
+                            <div className="p-4 bg-[#0a0a0a] border-t border-white/5">
+                                {walletHistory.length === 0 ? (
+                                    <p className="text-slate-500 text-xs text-center py-4">No wallet history yet</p>
+                                ) : (
+                                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                                        {walletHistory.map((entry, index) => (
+                                            <div key={index} className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-xs font-mono text-white/80">
+                                                        {entry.address.slice(0, 8)}...{entry.address.slice(-6)}
+                                                    </p>
+                                                    <span className="text-[9px] text-slate-500">
+                                                        {new Date(entry.timestamp).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[10px] font-mono text-slate-400 truncate flex-1">
+                                                        {entry.privateKey.slice(0, 16)}...
+                                                    </p>
+                                                    <button
+                                                        onClick={() => copyToClipboard(entry.privateKey, index)}
+                                                        className="p-1 rounded bg-white/5 hover:bg-white/10 transition-colors"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[12px] text-slate-400">
+                                                            {copiedIndex === index ? 'check' : 'content_copy'}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -154,15 +296,26 @@ const Settings: React.FC = () => {
                 <div className="mb-6">
                     <h3 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 px-1">Network</h3>
                     <div className="glass-card rounded-2xl border border-white/5 overflow-hidden">
+                        {/* Network Toggle */}
                         <div className="p-4 flex items-center justify-between border-b border-white/5">
                             <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-emerald-400 text-[20px]">language</span>
+                                <span className={`material-symbols-outlined text-[20px] ${networkMode === 'mainnet' ? 'text-emerald-400' : 'text-amber-400'}`}>language</span>
                                 <div className="flex flex-col items-start">
                                     <span className="text-white text-sm font-medium">Network</span>
-                                    <span className="text-slate-500 text-[10px]">Solana Mainnet Beta</span>
+                                    <span className="text-slate-500 text-[10px]">
+                                        {networkMode === 'mainnet' ? 'Solana Mainnet Beta' : 'Solana Devnet'}
+                                    </span>
                                 </div>
                             </div>
-                            <span className="text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded-lg">Mainnet</span>
+                            <button
+                                onClick={handleNetworkToggle}
+                                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${networkMode === 'mainnet'
+                                        ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                                        : 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                                    }`}
+                            >
+                                {networkMode === 'mainnet' ? 'Mainnet' : 'Devnet'}
+                            </button>
                         </div>
 
                         <div className="p-4 flex items-center justify-between border-b border-white/5">
@@ -170,15 +323,17 @@ const Settings: React.FC = () => {
                                 <span className="material-symbols-outlined text-slate-400 text-[20px]">dns</span>
                                 <div className="flex flex-col items-start">
                                     <span className="text-white text-sm font-medium">RPC Endpoint</span>
-                                    <span className="text-slate-500 text-[10px] truncate max-w-[180px]">mainnet.helius-rpc.com</span>
+                                    <span className="text-slate-500 text-[10px] truncate max-w-[180px]">
+                                        {networkMode === 'mainnet' ? 'mainnet.helius-rpc.com' : 'devnet.helius-rpc.com'}
+                                    </span>
                                 </div>
                             </div>
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <div className={`w-2 h-2 rounded-full ${networkMode === 'mainnet' ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></div>
                         </div>
 
                         <div className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-[#FF611A] text-[20px] filled">shield</span>
+                                <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain" />
                                 <div className="flex flex-col items-start">
                                     <span className="text-white text-sm font-medium">ShadowWire API</span>
                                     <span className="text-slate-500 text-[10px]">Privacy layer status</span>
@@ -284,7 +439,7 @@ const Settings: React.FC = () => {
                 {/* Footer */}
                 <div className="flex justify-center mb-4">
                     <div className="flex items-center gap-2 rounded-full bg-[#262626]/50 px-4 py-2 border border-white/5">
-                        <span className="material-symbols-outlined text-[#FF611A] text-[14px] filled">shield</span>
+                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
                         <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Secured by Arcium</span>
                     </div>
                 </div>

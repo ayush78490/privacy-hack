@@ -1,9 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useWallet } from '../context/WalletContext';
-import * as api from '../utils/api';
-import bs58 from 'bs58';
 import { executeAnonymousTransfer, estimateTotalAnonymousGas, estimateSplTokenGas } from '../utils/anonymousWallet';
+import { ShadowWireClient } from '@radr/shadowwire';
+import { sendSol, getConnection } from '../utils/solana';
+import {
+    PublicKey,
+    Transaction,
+    sendAndConfirmTransaction,
+} from '@solana/web3.js';
+import {
+    getAssociatedTokenAddress,
+    createAssociatedTokenAccountInstruction,
+    createTransferInstruction,
+    getAccount,
+} from '@solana/spl-token';
 
 // Token configuration
 const SEND_TOKENS = [
@@ -14,8 +25,14 @@ const SEND_TOKENS = [
 ];
 
 
+// Token mint addresses for direct transfers
+const TOKEN_MINTS: Record<string, string> = {
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    BONK: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+};
+
 interface TransactionPreview {
-    type: 'internal' | 'external';
+    type: 'internal' | 'external' | 'direct';
     sender: string;
     recipient: string;
     amount: string;
@@ -33,8 +50,6 @@ const Send: React.FC = () => {
     const {
         wallet,
         address,
-        balance,
-        usdcBalance,
         tokenBalances,
         refreshBalance,
         apiConnected,
@@ -44,6 +59,9 @@ const Send: React.FC = () => {
         anonymousAddress,
         onChainBalance,
         onChainUsdcBalance,
+        shieldedBalance,
+        shieldedUsdcBalance,
+        shieldedTokenBalances,
         getActiveWallet,
         getActiveAddress
     } = useWallet();
@@ -51,7 +69,7 @@ const Send: React.FC = () => {
     const [amount, setAmount] = useState('0');
     const [recipient, setRecipient] = useState('');
     const [loading] = useState(false);
-    const [transferType, setTransferType] = useState<'internal' | 'external'>('internal');
+    const [transferType, setTransferType] = useState<'internal' | 'external' | 'direct'>('internal');
     const [selectedToken, setSelectedToken] = useState('SOL');
     const [showTokenSelect, setShowTokenSelect] = useState(false);
 
@@ -62,20 +80,35 @@ const Send: React.FC = () => {
     const [txHash, setTxHash] = useState<string | null>(null);
     const [fundingTxHash, setFundingTxHash] = useState<string | null>(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string>('');
 
     // Anonymous transfer progress
     const [anonymousStep, setAnonymousStep] = useState<AnonymousStep>('idle');
 
-    // Get balance for selected token based on mode
-    // In anonymous mode, use MAIN WALLET balance for funding (not temp wallet which starts at 0)
+    // Get balance for selected token based on mode and transfer type
+    // - Anonymous mode: use MAIN WALLET balance (funds FROM main wallet)
+    // - Private/External: use SHIELDED balance (funds FROM pool)
+    // - Direct: use MAIN WALLET balance (regular on-chain transfer)
     const getTokenBalance = (symbol: string): number => {
         if (isAnonymousMode) {
-            // IMPORTANT: In anonymous mode, we fund FROM main wallet, so check main wallet balance
+            // Anonymous mode: fund FROM main wallet
             if (symbol === 'SOL') return onChainBalance;
             if (symbol === 'USDC') return onChainUsdcBalance;
+        } else if (transferType === 'direct') {
+            // Direct transfer: use main wallet balance
+            if (symbol === 'SOL') return onChainBalance;
+            if (symbol === 'USDC') return onChainUsdcBalance;
+            // For other tokens in direct mode, check on-chain balance
+            const tb = tokenBalances.find(t => t.symbol === symbol);
+            return tb?.balanceFormatted || 0;
         } else {
-            if (symbol === 'SOL') return balance;
-            if (symbol === 'USDC') return usdcBalance;
+            // Private/External: use shielded (pool) balance
+            if (symbol === 'SOL') return shieldedBalance;
+            if (symbol === 'USDC') return shieldedUsdcBalance;
+            // For other tokens, check shielded token balances
+            const stb = shieldedTokenBalances.find(t => t.symbol === symbol);
+            return stb?.balanceFormatted || 0;
         }
         const tb = tokenBalances.find(t => t.symbol === symbol);
         return tb?.balanceFormatted || 0;
@@ -109,28 +142,25 @@ const Send: React.FC = () => {
     const handleBackspace = () => {
         if (loading) return;
         setAmount(prev => {
-            if (prev.length === 1) return '0';
-            return prev.slice(0, -1);
+            if (prev.length <= 1) return '';
+            const newVal = prev.slice(0, -1);
+            // Remove leading zeros except for "0."
+            if (newVal.length > 1 && newVal.startsWith('0') && newVal[1] !== '.') {
+                return newVal.replace(/^0+/, '') || '';
+            }
+            return newVal;
         });
     };
 
-    // Generate signature message for transaction
-    const generateSignatureMessage = (type: 'internal' | 'external', amt: string, token: string, to: string, isAnonymous: boolean): string => {
-        const timestamp = Date.now();
-        const txType = isAnonymous ? 'Anonymous' : (type === 'internal' ? 'Private' : 'External');
-        const message = `ShadowWire Transaction\n\nType: ${txType}\nAmount: ${amt} ${token}\nTo: ${to}\nTimestamp: ${timestamp}\n\nSign to approve this transaction.`;
-        return message;
-    };
+    const shadowWireClient = useMemo(() => new ShadowWireClient({ debug: true }), []);
 
-    // Sign message with wallet
-    const signMessage = async (message: string): Promise<string> => {
+    // Sign message with the active wallet (Keypair) for ShadowWire SDK.
+    // ShadowWire expects a wallet adapter with `signMessage(messageBytes) => signatureBytes`.
+    const signMessageBytes = async (messageBytes: Uint8Array): Promise<Uint8Array> => {
         const activeWallet = getActiveWallet();
         if (!activeWallet) throw new Error('Wallet not available');
-
-        const messageBytes = new TextEncoder().encode(message);
         const nacl = await import('tweetnacl');
-        const signature = nacl.sign.detached(messageBytes, activeWallet.secretKey);
-        return bs58.encode(signature);
+        return nacl.sign.detached(messageBytes, activeWallet.secretKey);
     };
 
     // Prepare transaction for approval
@@ -138,7 +168,8 @@ const Send: React.FC = () => {
         const activeAddress = getActiveAddress();
         const activeWallet = getActiveWallet();
 
-        if (!activeWallet || !activeAddress || !recipient || parseFloat(amount) <= 0) {
+        const amountNumber = Number(amount);
+        if (!activeWallet || !activeAddress || !recipient || !Number.isFinite(amountNumber) || amountNumber <= 0) {
             alert('Please enter a valid address and amount');
             return;
         }
@@ -198,8 +229,8 @@ const Send: React.FC = () => {
                 alert(`Insufficient ${selectedToken} balance. Need ${parseFloat(amount).toFixed(6)} ${selectedToken}`);
                 return;
             }
-            // Also check SOL for gas + rent
-            const solForGas = isAnonymousMode ? onChainBalance : balance;
+            // Also check SOL for gas + rent (use onChainBalance for direct, shieldedBalance for private/external)
+            const solForGas = isAnonymousMode ? onChainBalance : (transferType === 'direct' ? onChainBalance : shieldedBalance);
             const totalSolNeeded = estimatedGas + (isAnonymousMode ? RENT_EXEMPT_MIN : 0);
             if (isAnonymousMode && totalSolNeeded > solForGas) {
                 alert(`Insufficient SOL for gas in main wallet. Need ${totalSolNeeded.toFixed(6)} SOL (${estimatedGas.toFixed(6)} gas + ${RENT_EXEMPT_MIN} rent reserve)`);
@@ -207,10 +238,10 @@ const Send: React.FC = () => {
             }
         }
 
-        // Generate signature message
-        const message = generateSignatureMessage(transferType, amount, selectedToken, recipient, isAnonymousMode);
+        // Create transaction preview (message is for display only)
+        const transferTypeLabel = isAnonymousMode ? 'Anonymous' : (transferType === 'internal' ? 'Private' : transferType === 'external' ? 'External' : 'Direct');
+        const displayMessage = `${transferTypeLabel} transfer of ${amount} ${selectedToken} to ${recipient.slice(0, 8)}...`;
 
-        // Create transaction preview
         const preview: TransactionPreview = {
             type: transferType,
             sender: isAnonymousMode ? (address || '') : activeAddress,
@@ -218,7 +249,7 @@ const Send: React.FC = () => {
             amount: amount,
             token: selectedToken,
             estimatedFee: isAnonymousMode ? `~${estimatedGas.toFixed(6)} SOL (2 txns)` : '0.00005 SOL',
-            message: message,
+            message: displayMessage,
             isAnonymous: isAnonymousMode,
             estimatedGas: estimatedGas,
         };
@@ -258,8 +289,98 @@ const Send: React.FC = () => {
             refreshBalance();
         } catch (err: any) {
             console.error('[Send] Anonymous transfer failed:', err);
-            alert(`Anonymous transfer failed: ${err.message || 'Unknown error'}`);
+            setErrorMessage(err.message || 'Anonymous transfer failed. Please try again.');
+            setShowApprovalModal(false);
+            setShowErrorModal(true);
             setAnonymousStep('idle');
+        } finally {
+            setSigning(false);
+        }
+    };
+
+    // Handle direct transfer (main wallet to main wallet, regular on-chain)
+    const handleDirectTransfer = async () => {
+        if (!txPreview) return;
+
+        const activeWallet = getActiveWallet();
+        const activeAddress = getActiveAddress();
+
+        if (!activeWallet || !activeAddress) return;
+
+        setSigning(true);
+        try {
+            const amountNumber = Number(txPreview.amount);
+            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+                setErrorMessage('Invalid amount. Please enter a valid number.');
+                setShowApprovalModal(false);
+                setShowErrorModal(true);
+                return;
+            }
+
+            const connection = getConnection();
+            let signature: string;
+
+            if (txPreview.token === 'SOL') {
+                // Direct SOL transfer
+                signature = await sendSol(activeWallet, txPreview.recipient, amountNumber);
+            } else {
+                // Direct SPL token transfer
+                const mintAddress = TOKEN_MINTS[txPreview.token];
+                if (!mintAddress) {
+                    throw new Error(`Token ${txPreview.token} not supported for direct transfers`);
+                }
+
+                const mint = new PublicKey(mintAddress);
+                const recipientPubkey = new PublicKey(txPreview.recipient);
+                const senderPubkey = activeWallet.publicKey;
+
+                // Get or create associated token accounts
+                const senderAta = await getAssociatedTokenAddress(mint, senderPubkey);
+                const recipientAta = await getAssociatedTokenAddress(mint, recipientPubkey);
+
+                // Calculate token amount in smallest units (USDC has 6 decimals, BONK has 5)
+                const decimals = txPreview.token === 'USDC' ? 6 : txPreview.token === 'BONK' ? 5 : 9;
+                const tokenAmount = Math.floor(amountNumber * Math.pow(10, decimals));
+
+                const transaction = new Transaction();
+
+                // Check if recipient ATA exists, if not, create it
+                try {
+                    await getAccount(connection, recipientAta);
+                } catch {
+                    // ATA doesn't exist, add create instruction
+                    transaction.add(
+                        createAssociatedTokenAccountInstruction(
+                            senderPubkey, // payer
+                            recipientAta, // ata
+                            recipientPubkey, // owner
+                            mint // mint
+                        )
+                    );
+                }
+
+                // Add transfer instruction
+                transaction.add(
+                    createTransferInstruction(
+                        senderAta,
+                        recipientAta,
+                        senderPubkey,
+                        tokenAmount
+                    )
+                );
+
+                signature = await sendAndConfirmTransaction(connection, transaction, [activeWallet]);
+            }
+
+            setTxHash(signature);
+            setShowApprovalModal(false);
+            setShowSuccessModal(true);
+            refreshBalance();
+        } catch (err: any) {
+            console.error('[Send] Direct transfer failed:', err);
+            setErrorMessage(err.message || 'Direct transfer failed. Please try again.');
+            setShowApprovalModal(false);
+            setShowErrorModal(true);
         } finally {
             setSigning(false);
         }
@@ -275,6 +396,12 @@ const Send: React.FC = () => {
             return;
         }
 
+        // If direct transfer, use regular on-chain transfer
+        if (txPreview.type === 'direct') {
+            await handleDirectTransfer();
+            return;
+        }
+
         const activeWallet = getActiveWallet();
         const activeAddress = getActiveAddress();
 
@@ -282,57 +409,38 @@ const Send: React.FC = () => {
 
         setSigning(true);
         try {
-            // Sign the message
-            console.log('[Send] Signing transaction message...');
-            const signature = await signMessage(txPreview.message);
-            console.log('[Send] Signature generated:', signature.slice(0, 20) + '...');
-
-            // Update preview with signature
-            setTxPreview(prev => prev ? { ...prev, signature } : null);
-
-            if (apiConnected) {
-                // Use ShadowWire API with signature auth
-                const result = await api.executeTransfer({
-                    sender: activeAddress,
-                    recipient: txPreview.recipient,
-                    amount: parseFloat(txPreview.amount),
-                    token: txPreview.token,
-                    type: txPreview.type,
-                    zk_auth: {
-                        signature_base64: btoa(signature),
-                        signature_message: txPreview.message,
-                    },
-                    transfer_auth: {
-                        signature_base64: btoa(signature),
-                        signature_message: txPreview.message,
-                    },
-                });
-
-                if (result.success && result.data) {
-                    console.log('[Send] Transaction successful:', result.data);
-                    setTxHash(result.data.tx_signature || signature);
-                    setShowApprovalModal(false);
-                    setShowSuccessModal(true);
-                    refreshBalance();
-                } else {
-                    console.log('[Send] API Response:', result);
-                    setTxHash(signature);
-                    setShowApprovalModal(false);
-                    setShowSuccessModal(true);
-                }
-            } else {
-                // Fallback: Direct on-chain send
-                const { sendShielded } = await import('../utils/solana');
-                const result = await sendShielded(activeWallet, txPreview.recipient, parseFloat(txPreview.amount));
-                console.log('[Send] Fallback transaction successful:', result);
-                setTxHash(result.ghostId || signature);
+            const amountNumber = Number(txPreview.amount);
+            if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+                setErrorMessage('Invalid amount. Please enter a valid number.');
                 setShowApprovalModal(false);
-                setShowSuccessModal(true);
-                refreshBalance();
+                setShowErrorModal(true);
+                return;
             }
+
+            // Execute transfer directly via ShadowWire SDK (no backend /api/transfer).
+            const result: any = await shadowWireClient.transfer({
+                sender: activeAddress,
+                recipient: txPreview.recipient,
+                amount: amountNumber,
+                token: txPreview.token as any,
+                type: txPreview.type as 'internal' | 'external',
+                wallet: {
+                    signMessage: async (bytes: Uint8Array) => signMessageBytes(bytes),
+                },
+            });
+
+            const txSig: string | undefined =
+                result?.tx_signature || result?.signature || result?.txSignature;
+
+            setTxHash(txSig || (typeof result === 'string' ? result : JSON.stringify(result)));
+            setShowApprovalModal(false);
+            setShowSuccessModal(true);
+            refreshBalance();
         } catch (err: any) {
             console.error('[Send] Transaction failed:', err);
-            alert(`Transaction failed: ${err.message || 'Unknown error'}`);
+            setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
+            setShowApprovalModal(false);
+            setShowErrorModal(true);
         } finally {
             setSigning(false);
         }
@@ -388,12 +496,39 @@ const Send: React.FC = () => {
                 {/* Amount Display */}
                 <div className="flex flex-col items-center justify-center py-0 flex-grow-0 mb-2">
                     <div className="flex items-baseline gap-2 relative">
-                        <div className="absolute inset-0 bg-[#FF611A]/20 blur-2xl rounded-full opacity-50"></div>
-                        <h1 className="relative text-white text-[3.5rem] font-medium tracking-tight drop-shadow-[0_0_15px_rgba(255,97,26,0.2)]">{amount}</h1>
+                        <div className="absolute inset-0 bg-[#FF611A]/20 blur-2xl rounded-full opacity-50 pointer-events-none"></div>
+                        <input
+                            type="text"
+                            inputMode="decimal"
+                            value={amount}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                // Allow empty, numbers, and single decimal point
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                    // Don't add leading zeros (except for "0." decimal)
+                                    if (val === '') {
+                                        setAmount('');
+                                    } else if (val.length > 1 && val.startsWith('0') && val[1] !== '.') {
+                                        setAmount(val.replace(/^0+/, '') || '0');
+                                    } else {
+                                        setAmount(val);
+                                    }
+                                }
+                            }}
+                            onFocus={() => {
+                                if (amount === '0') setAmount('');
+                            }}
+                            onBlur={() => {
+                                if (amount === '' || amount === '.') setAmount('0');
+                            }}
+                            className="relative text-white text-[3.5rem] font-medium tracking-tight drop-shadow-[0_0_15px_rgba(255,97,26,0.2)] bg-transparent border-none outline-none text-center w-32 focus:outline-none"
+                            style={{ caretColor: '#FF611A' }}
+                        />
 
                         {/* Token Selector */}
                         <button
-                            className="relative flex items-center gap-1 text-[#FF611A] hover:text-[#FF8A50] transition-colors"
+                            type="button"
+                            className="relative flex items-center gap-1 text-[#FF611A] hover:text-[#FF8A50] transition-colors z-10"
                             onClick={() => setShowTokenSelect(!showTokenSelect)}
                         >
                             <span className="text-xl font-semibold">{selectedToken}</span>
@@ -406,6 +541,7 @@ const Send: React.FC = () => {
                                 {SEND_TOKENS.map(token => (
                                     <button
                                         key={token.symbol}
+                                        type="button"
                                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors"
                                         onClick={() => { setSelectedToken(token.symbol); setShowTokenSelect(false); setAmount('0'); }}
                                     >
@@ -422,40 +558,58 @@ const Send: React.FC = () => {
                         ≈ ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                     </p>
                     <p className="text-white/30 text-xs mt-1">
-                        {isAnonymousMode ? 'Main Wallet' : ''} Balance: {getTokenBalance(selectedToken).toFixed(4)} {selectedToken}
+                        {isAnonymousMode ? 'Main Wallet' : (transferType === 'direct' ? 'Wallet' : 'Shielded')} Balance: {getTokenBalance(selectedToken).toFixed(4)} {selectedToken}
                     </p>
                 </div>
 
                 {/* Transfer Type Toggle - Hidden in anonymous mode */}
                 {!isAnonymousMode && (
-                    <div className="mb-4 flex items-center justify-center gap-2">
+                    <div className="mb-4 flex items-center justify-center gap-2 flex-wrap">
                         <button
                             onClick={() => setTransferType('internal')}
-                            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${transferType === 'internal' ? 'bg-[#FF611A] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                            className={`px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${transferType === 'internal' ? 'bg-[#FF611A] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
                         >
-                            Internal (Private)
+                            Private
                         </button>
                         <button
                             onClick={() => setTransferType('external')}
-                            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${transferType === 'external' ? 'bg-[#FF611A] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                            className={`px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${transferType === 'external' ? 'bg-[#FF611A] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
                         >
                             External
+                        </button>
+                        <button
+                            onClick={() => setTransferType('direct')}
+                            className={`px-3 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${transferType === 'direct' ? 'bg-[#FF611A] text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                        >
+                            Direct
                         </button>
                     </div>
                 )}
 
+                {/* Transfer Type Description */}
+                {!isAnonymousMode && (
+                    <p className="text-white/40 text-[10px] text-center mb-4 px-4">
+                        {transferType === 'internal' && 'Pool → Pool: Private transfer within ShadowWire'}
+                        {transferType === 'external' && 'Pool → Wallet: From your pool to recipient\'s main wallet'}
+                        {transferType === 'direct' && 'Wallet → Wallet: Regular on-chain transfer (public)'}
+                    </p>
+                )}
+
                 {/* Recipient Address */}
-                <div className="mb-4 relative group">
+                <div className="mb-4 relative group z-10">
                     <label className="block text-white/50 text-[11px] font-bold uppercase tracking-widest mb-2 pl-1">To Solana Address</label>
                     <div className="glass-input flex w-full items-stretch rounded-2xl overflow-hidden focus-within:border-[#FF611A]/60 focus-within:shadow-[0_0_25px_rgba(255,97,26,0.1)] transition-all duration-300">
                         <input
-                            className="flex-1 bg-transparent border-none text-white placeholder:text-white/20 px-4 py-4 focus:ring-0 text-base font-medium"
+                            className="flex-1 bg-transparent border-none text-white placeholder:text-white/20 px-4 py-4 focus:outline-none focus:ring-0 text-base font-medium outline-none"
                             placeholder="Paste Solana address..."
                             type="text"
                             value={recipient}
                             onChange={(e) => setRecipient(e.target.value)}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck="false"
                         />
-                        <button className="px-5 flex items-center justify-center text-[#FF611A]/80 border-l border-white/5 hover:bg-white/5 hover:text-[#FF611A] transition-colors">
+                        <button type="button" className="px-5 flex items-center justify-center text-[#FF611A]/80 border-l border-white/5 hover:bg-white/5 hover:text-[#FF611A] transition-colors">
                             <span className="material-symbols-outlined text-[22px]">qr_code_scanner</span>
                         </button>
                     </div>
@@ -680,6 +834,50 @@ const Send: React.FC = () => {
                             className="w-full py-4 rounded-xl bg-[#FF611A] text-white font-bold shadow-[0_0_20px_rgba(255,97,26,0.3)]"
                         >
                             Done
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Error Modal */}
+            {showErrorModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-[#1a1a1a] border border-red-500/20 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-red-500 text-[48px]">error</span>
+                        </div>
+
+                        <h3 className="text-2xl font-bold text-white mb-2">Transaction Failed</h3>
+                        <p className="text-slate-400 text-sm mb-6">
+                            Something went wrong while processing your transaction.
+                        </p>
+
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-left">
+                            <p className="text-[10px] text-red-400 uppercase tracking-widest mb-1">Error Details</p>
+                            <p className="text-red-300 text-sm break-all">{errorMessage}</p>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                setShowErrorModal(false);
+                                setErrorMessage('');
+                            }}
+                            className="w-full py-4 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors mb-3"
+                        >
+                            Try Again
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setShowErrorModal(false);
+                                setErrorMessage('');
+                                setAmount('0');
+                                setRecipient('');
+                                setLocation('/dashboard');
+                            }}
+                            className="w-full py-3 rounded-xl bg-transparent text-slate-400 font-medium hover:text-white transition-colors"
+                        >
+                            Go Back to Dashboard
                         </button>
                     </div>
                 </div>

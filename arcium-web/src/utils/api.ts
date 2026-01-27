@@ -1,7 +1,7 @@
 // ShadowWire API Service
-// Handles all communication with the backend
+// Handles all communication with the radr-backend
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://radr-backend.onrender.com';
 
 interface ApiResponse<T> {
     success: boolean;
@@ -162,7 +162,7 @@ export interface SignatureAuth {
 export interface TransferRequest {
     sender: string;
     recipient: string;
-    amount: number;
+    amount: number | string;
     token?: string;
     type?: 'internal' | 'external';
     zk_auth?: SignatureAuth;
@@ -181,9 +181,25 @@ export interface TransferResponse {
 }
 
 export async function executeTransfer(request: TransferRequest): Promise<ApiResponse<TransferResponse>> {
+    // Validate amount before sending
+    const amountValue =
+        typeof request.amount === 'string' ? Number(request.amount) : request.amount;
+    if (request.amount === undefined || request.amount === null || !Number.isFinite(amountValue)) {
+        console.error('[API] Invalid amount in transfer request:', request.amount);
+        return {
+            success: false,
+            error: `Invalid amount: ${request.amount}`,
+            errorType: 'ValidationError'
+        };
+    }
+    
+    const body = JSON.stringify(request);
+    console.log('[API] executeTransfer request body:', body);
+    console.log('[API] executeTransfer parsed amount:', request.amount, typeof request.amount);
+    
     return apiCall<TransferResponse>('/api/transfer', {
         method: 'POST',
-        body: JSON.stringify(request),
+        body: body,
     });
 }
 

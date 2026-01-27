@@ -262,8 +262,33 @@ app.post('/api/transfer', async (req, res) => {
             });
         }
 
+        console.log('[Transfer] Received amount:', amount, 'type:', typeof amount);
+        
         const { TokenUtils } = await import('@radr/shadowwire');
-        const amountSmallestUnit = TokenUtils.toSmallestUnit(parseFloat(amount), token);
+        const parsedAmount = parseFloat(amount);
+        console.log('[Transfer] Parsed amount:', parsedAmount);
+        
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: `Invalid amount value: ${amount} (parsed: ${parsedAmount})`,
+                errorType: 'ValidationError'
+            });
+        }
+        
+        const amountSmallestUnitRaw = TokenUtils.toSmallestUnit(parsedAmount, token);
+        const amountSmallestUnitStr = amountSmallestUnitRaw?.toString?.();
+        const amountSmallestUnitNum = Number(amountSmallestUnitStr);
+        console.log('[Transfer] Amount in smallest unit:', amountSmallestUnitRaw, 'as number:', amountSmallestUnitNum);
+
+        if (!amountSmallestUnitStr || !Number.isFinite(amountSmallestUnitNum) || amountSmallestUnitNum <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: `Invalid smallest unit amount: ${amountSmallestUnitStr}`,
+                errorType: 'ValidationError'
+            });
+        }
+        
         const nonce = Math.floor(Date.now() / 1000);
         const tokenMint = TokenUtils.getTokenMint(token);
         const tokenParam = tokenMint === 'Native' ? 'SOL' : tokenMint;
@@ -271,19 +296,34 @@ app.post('/api/transfer', async (req, res) => {
         const sender_signature_zk = base64ToBase58Signature(zk_auth.signature_base64);
         const sender_signature_transfer = base64ToBase58Signature(transfer_auth.signature_base64);
 
-        const proofResult = await client.uploadProof({
+        const uploadProofPayload = {
             sender_wallet: sender,
             token: tokenParam,
-            amount: amountSmallestUnit,
+            amount: amountSmallestUnitNum,
             nonce,
             sender_signature: sender_signature_zk,
             signature_message: zk_auth.signature_message
-        });
+        };
+        console.log('[Transfer] uploadProof payload:', JSON.stringify(uploadProofPayload));
+        
+        let proofResult;
+        try {
+            proofResult = await client.uploadProof(uploadProofPayload);
+            console.log('[Transfer] uploadProof result:', proofResult);
+        } catch (uploadErr) {
+            console.error('[Transfer] uploadProof failed:', uploadErr);
+            return res.status(400).json({
+                success: false,
+                error: uploadErr.message || 'Failed to upload proof',
+                errorType: 'UploadProofError',
+                details: uploadErr.response?.data || uploadErr.toString()
+            });
+        }
 
-        const relayerFee = Math.floor(amountSmallestUnit * 0.01);
+        const relayerFee = Math.floor(amountSmallestUnitNum * 0.01);
 
         if (type === 'internal') {
-            const internalResult = await client.internalTransfer({
+            const internalPayload = {
                 sender_wallet: sender,
                 recipient_wallet: recipient,
                 token: tokenParam,
@@ -291,7 +331,22 @@ app.post('/api/transfer', async (req, res) => {
                 relayer_fee: relayerFee,
                 sender_signature: sender_signature_transfer,
                 signature_message: transfer_auth.signature_message
-            });
+            };
+            console.log('[Transfer] internalTransfer payload:', JSON.stringify(internalPayload));
+
+            let internalResult;
+            try {
+                internalResult = await client.internalTransfer(internalPayload);
+                console.log('[Transfer] internalTransfer result:', internalResult);
+            } catch (internalErr) {
+                console.error('[Transfer] internalTransfer failed:', internalErr);
+                return res.status(400).json({
+                    success: false,
+                    error: internalErr.message || 'Failed to execute internal transfer',
+                    errorType: 'InternalTransferError',
+                    details: internalErr.response?.data || internalErr.toString()
+                });
+            }
 
             return res.json({
                 success: true,
@@ -307,7 +362,7 @@ app.post('/api/transfer', async (req, res) => {
             });
         }
 
-        const externalResult = await client.externalTransfer({
+        const externalPayload = {
             sender_wallet: sender,
             recipient_wallet: recipient,
             token: tokenParam,
@@ -315,7 +370,22 @@ app.post('/api/transfer', async (req, res) => {
             relayer_fee: relayerFee,
             sender_signature: sender_signature_transfer,
             signature_message: transfer_auth.signature_message
-        });
+        };
+        console.log('[Transfer] externalTransfer payload:', JSON.stringify(externalPayload));
+
+        let externalResult;
+        try {
+            externalResult = await client.externalTransfer(externalPayload);
+            console.log('[Transfer] externalTransfer result:', externalResult);
+        } catch (externalErr) {
+            console.error('[Transfer] externalTransfer failed:', externalErr);
+            return res.status(400).json({
+                success: false,
+                error: externalErr.message || 'Failed to execute external transfer',
+                errorType: 'ExternalTransferError',
+                details: externalErr.response?.data || externalErr.toString()
+            });
+        }
 
         return res.json({
             success: true,

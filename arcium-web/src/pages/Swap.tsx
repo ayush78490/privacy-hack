@@ -184,7 +184,7 @@ const Swap: React.FC = () => {
             console.log('[Swap] Executing Jupiter swap...', { fromToken, toToken, amount });
 
             const { Connection } = await import('@solana/web3.js');
-            const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+            const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=af4b15c2-240b-491b-865a-f7218750ddac';
             const connection = new Connection(rpcUrl, 'confirmed');
 
             // Execute real swap via Jupiter

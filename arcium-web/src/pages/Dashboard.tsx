@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { useWallet } from '../context/WalletContext';
 import * as api from '../utils/api';
+import { Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { getConnection } from '../utils/solana';
 
 // Token logo URLs
 const TOKEN_LOGOS: Record<string, string> = {
@@ -89,7 +91,30 @@ const Dashboard: React.FC = () => {
 
             if (result.success && result.data) {
                 console.log('[Dashboard] Deposit tx created:', result.data);
-                alert(`Deposit created!\n\nAmount: ${depositAmount} ${depositToken}\nPool: ${result.data.pool_address?.slice(0, 12)}...\n\nSign the transaction with your wallet to complete.`);
+                
+                // Decode the unsigned transaction
+                const unsignedTxBase64 = result.data.unsigned_tx_base64;
+                if (!unsignedTxBase64) {
+                    throw new Error('No transaction returned from server');
+                }
+
+                // Decode base64 to buffer and deserialize transaction
+                const txBuffer = Buffer.from(unsignedTxBase64, 'base64');
+                const transaction = Transaction.from(txBuffer);
+
+                // Get connection and sign + send transaction
+                const connection = getConnection();
+                
+                console.log('[Dashboard] Signing and sending deposit transaction...');
+                const signature = await sendAndConfirmTransaction(
+                    connection,
+                    transaction,
+                    [wallet],
+                    { commitment: 'confirmed' }
+                );
+
+                console.log('[Dashboard] Deposit successful! Signature:', signature);
+                alert(`Deposit successful!\n\nAmount: ${depositAmount} ${depositToken}\nSignature: ${signature.slice(0, 20)}...`);
                 setShowDepositModal(false);
                 setDepositAmount('');
                 refreshBalance();

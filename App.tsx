@@ -11,7 +11,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 function App(): React.JSX.Element {
   // 10.0.2.2 is the host loopback for Android emulators
   // Set to true to use the dev server, false to use bundled assets
-  const isDev = true;
+  const isDev = false;
   const uri = isDev ? 'http://10.0.2.2:5173' : 'file:///android_asset/www/index.html';
 
   const [error, setError] = React.useState<string | null>(null);

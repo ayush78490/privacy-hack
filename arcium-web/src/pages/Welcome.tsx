@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useWallet } from '../context/WalletContext';
+import { LOGO_PATH } from '../constants/logo';
 
 const Welcome: React.FC = () => {
     const [, setLocation] = useLocation();
@@ -8,8 +9,8 @@ const Welcome: React.FC = () => {
 
     // Auto-redirect to dashboard if wallet credentials exist
     useEffect(() => {
-        const storedAddress = localStorage.getItem('arcium_wallet_address');
-        const storedMnemonic = localStorage.getItem('arcium_mnemonic');
+        const storedAddress = localStorage.getItem('privypay_wallet_address');
+        const storedMnemonic = localStorage.getItem('privypay_mnemonic');
         if (storedAddress && storedMnemonic) {
             setLocation('/dashboard');
         }
@@ -26,37 +27,30 @@ const Welcome: React.FC = () => {
     };
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-obsidian group/design-root">
+        <div className="fixed inset-0 flex flex-col overflow-hidden bg-obsidian group/design-root touch-none overscroll-none select-none">
             <div className="absolute inset-0 bg-mesh-gradient opacity-80 pointer-events-none"></div>
             <div className="absolute top-[-10%] left-[-20%] w-[600px] h-[600px] bg-electric-purple/20 rounded-full blur-[140px] pointer-events-none mix-blend-screen"></div>
             <div className="absolute bottom-[-10%] right-[-20%] w-[500px] h-[500px] bg-neon-teal/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
             <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-indigo-900/30 rounded-full blur-[100px] pointer-events-none"></div>
 
-            <div className="flex flex-col h-full grow w-full max-w-md mx-auto p-6 justify-between relative z-10">
-                <div className="flex flex-col items-center pt-10">
-                    <div className="flex items-center gap-2 mb-12 px-4 py-1.5 rounded-full border border-glass-border bg-glass-surface backdrop-blur-md shadow-glass-shine">
-                        <h3 className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-wide text-sm font-bold uppercase">PrivyPay</h3>
-                    </div>
-                </div>
+            <div className="relative z-10 flex h-full w-full max-w-md mx-auto p-6 flex-col justify-between overflow-hidden">
+
 
                 <div className="flex flex-col items-center justify-center  w-full my-auto">
-                    <div className="relative w-full aspect-square max-w-[320px] flex items-center justify-center mb-10">
+                    <div className="relative w-full aspect-square max-w-[180px] flex items-center justify-center mb-10">
                         <div className="absolute inset-0 border border-electric-purple/10  rounded-full scale-110"></div>
                         <div className="absolute inset-0 border border-neon-teal/5 rounded-full scale-125 border-dashed"></div>
                         <div className="absolute inset-0 bg-gradient-to-tr from-electric-purple/20 to-neon-teal/20 blur-[50px] rounded-full scale-75 animate-pulse-slow"></div>
-                        <div className="relative z-20 w-full h-full p-8 rounded-full bg-gradient-to-b from-white/5 to-transparent border border-white/5 backdrop-blur-sm shadow-2xl shadow-black/50 flex items-center justify-center">
-                            <img src="/privypay.png" alt="PrivyPay" className="w-full h-full object-contain" />
+                        <div className="relative z-20 w-full h-full p-6 rounded-full bg-gradient-to-b from-white/5 to-transparent border border-white/5 backdrop-blur-sm shadow-2xl shadow-black/50 flex items-center justify-center">
+                            <img src={LOGO_PATH} alt="PrivyPay" className="w-full h-full object-contain" />
                         </div>
                     </div>
 
                     <div className="flex flex-col items-center text-center gap-4 px-4 relative">
                         <h1 className="text-white text-4xl md:text-5xl font-extrabold leading-tight tracking-tight drop-shadow-lg">
                             <span className="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/60">Shielded by</span><br />
-                            <span className="bg-clip-text text-transparent bg-primary-glow-bg">Default</span>
+                            <span className="bg-clip-text text-transparent bg-primary-glow-bg">PrivyPay</span>
                         </h1>
-                        <p className="text-zinc-400 text-base md:text-lg font-medium leading-relaxed max-w-[280px]">
-                            Untraceable transactions powered by the Arcium confidential AI layer.
-                        </p>
                     </div>
                 </div>
 

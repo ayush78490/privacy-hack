@@ -20,7 +20,7 @@ import { getConnection } from './solana';
 const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
 // LocalStorage keys for temp wallet history
-const WALLET_HISTORY_KEY = 'arcium_temp_wallet_history';
+const WALLET_HISTORY_KEY = 'privypay_temp_wallet_history';
 const MAX_HISTORY_SIZE = 10;
 
 // Interface for wallet history entry

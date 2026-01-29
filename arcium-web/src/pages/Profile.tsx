@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { QRCodeSVG } from 'qrcode.react';
 import { useWallet } from '../context/WalletContext';
+import { LOGO_PATH } from '../constants/logo';
 
 const Profile: React.FC = () => {
     const {
@@ -69,7 +70,7 @@ const Profile: React.FC = () => {
     };
 
     return (
-        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+        <div className="bg-[#121212] text-white h-full font-display antialiased relative">
             <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -85,7 +86,7 @@ const Profile: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 pt-6 max-w-md mx-auto w-full">
+            <main className="flex-1 px-4 pt-6 pb-32 max-w-md mx-auto w-full">
                 {/* Wallet Mode Banner */}
                 <div className={`rounded-2xl p-4 mb-6 flex items-center justify-between ${isAnonymousMode
                     ? 'bg-gradient-to-r from-[#FF611A]/20 to-amber-500/10 border border-[#FF611A]/30'
@@ -228,15 +229,15 @@ const Profile: React.FC = () => {
                 {/* QR Code Card */}
                 <div className="rounded-2xl border border-[#FF611A]/20 bg-[#FF611A]/5 p-6 mb-6">
                     <div className="flex flex-col items-center">
-                        <div className="relative bg-[#FF611A] rounded-2xl p-4 mb-4 shadow-[0_0_30px_rgba(255,97,26,0.3)]">
+                        <div className="relative  rounded-2xl p-4 mb-4 bg-[#ff611a]/20 shadow-[0_0_30px_rgba(255,97,26,0.3)]">
                             {activeAddress ? (
                                 <QRCodeSVG
                                     value={`solana:${activeAddress}`}
                                     size={180}
                                     level="H"
                                     includeMargin={false}
-                                    fgColor="#121212"
-                                    bgColor="#FF611A"
+                                    fgColor="rgba(223, 111, 59, 0.97)"
+                                    bgColor="#121212"
                                 />
                             ) : (
                                 <div className="w-[180px] h-[180px] bg-[#FF611A]/50 rounded flex items-center justify-center">
@@ -245,13 +246,13 @@ const Profile: React.FC = () => {
                             )}
                             {/* Center logo overlay */}
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg">
-                                    <img src="/privypay.png" alt="PrivyPay" className="w-6 h-6 object-contain" />
+                                <div className="w-8 h-8 rounded-xl bg-[#121212] flex items-center justify-center shadow-lg">
+                                    <img src={LOGO_PATH} alt="PrivyPay" className="w-6 h-6 object-contain" />
                                 </div>
                             </div>
                         </div>
                         <p className="text-[10px] text-[#FF611A] font-bold uppercase tracking-widest">
-                            {isAnonymousMode ? 'Scan to Receive (Anon)' : 'Scan to Receive SOL'}
+                            {isAnonymousMode ? 'Scan to Receive' : 'Scan to Receive SOL'}
                         </p>
                     </div>
                 </div>
@@ -336,8 +337,8 @@ const Profile: React.FC = () => {
                 {/* Footer Badge */}
                 <div className="flex justify-center mb-4">
                     <div className="flex items-center gap-2 rounded-full bg-[#262626]/50 px-4 py-2 border border-white/5">
-                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
-                        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Secured by Arcium</span>
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Secured by PrivyPay</span>
                     </div>
                 </div>
             </main>

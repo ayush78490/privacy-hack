@@ -53,6 +53,8 @@ interface WalletContextType {
     shieldedBalance: number;
     shieldedUsdcBalance: number;
     shieldedTokenBalances: TokenBalance[];
+    // Pool address for private transactions
+    poolAddress: string | null;
     // Combined for backward compatibility
     balance: number;
     usdcBalance: number;
@@ -97,13 +99,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const [shieldedBalance, setShieldedBalance] = useState<number>(0);
     const [shieldedUsdcBalance, setShieldedUsdcBalance] = useState<number>(0);
     const [shieldedTokenBalances, setShieldedTokenBalances] = useState<TokenBalance[]>([]);
+    const [poolAddress, setPoolAddress] = useState<string | null>(null);
 
     const [tokens, setTokens] = useState<api.Token[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [apiConnected, setApiConnected] = useState(false);
     const [solPrice, setSolPrice] = useState<number>(140); // Default fallback
-    const [userName, setUserName] = useState<string>('Arcium Explorer');
+    const [userName, setUserName] = useState<string>('PrivyPay Explorer');
     const [userProfilePic, setUserProfilePic] = useState<string>('https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky');
 
     const isRefreshing = useRef(false);
@@ -271,6 +274,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     });
                     setShieldedTokenBalances(mappedBalances);
 
+                    // Store pool address for transaction history
+                    const poolAddr = solBalance?.pool_address || usdcBalanceData?.pool_address;
+                    if (poolAddr) {
+                        setPoolAddress(poolAddr);
+                        console.log('[WalletContext] Pool address:', poolAddr);
+                    }
+
                     console.log('[WalletContext] Shielded balances:', {
                         sol: solBalance?.availableFormatted,
                         usdc: usdcBalanceData?.availableFormatted
@@ -290,16 +300,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const updateProfile = useCallback((name: string, pic: string) => {
         setUserName(name);
         setUserProfilePic(pic);
-        localStorage.setItem('arcium_user_name', name);
-        localStorage.setItem('arcium_user_pic', pic);
+        localStorage.setItem('privypay_user_name', name);
+        localStorage.setItem('privypay_user_pic', pic);
     }, []);
 
     // Logout function - clears all stored data and resets state
     const logout = useCallback(() => {
         console.log('[WalletContext] Logging out...');
         // Clear localStorage
-        localStorage.removeItem('arcium_wallet_address');
-        localStorage.removeItem('arcium_mnemonic');
+        localStorage.removeItem('privypay_wallet_address');
+        localStorage.removeItem('privypay_mnemonic');
         // Reset all state
         setWallet(null);
         setAddress(null);
@@ -321,8 +331,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Effect for initial wallet hydration
     useEffect(() => {
         const hydrateWallet = () => {
-            const storedMnemonic = localStorage.getItem('arcium_mnemonic');
-            const storedAddress = localStorage.getItem('arcium_wallet_address');
+            const storedMnemonic = localStorage.getItem('privypay_mnemonic');
+            const storedAddress = localStorage.getItem('privypay_wallet_address');
 
             if (storedMnemonic && storedAddress) {
                 console.log('[WalletContext] Hydrating wallet from storage:', storedAddress);
@@ -340,8 +350,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
 
             // Hydrate profile
-            const storedName = localStorage.getItem('arcium_user_name');
-            const storedPic = localStorage.getItem('arcium_user_pic');
+            const storedName = localStorage.getItem('privypay_user_name');
+            const storedPic = localStorage.getItem('privypay_user_pic');
             if (storedName) setUserName(storedName);
             if (storedPic) setUserProfilePic(storedPic);
 
@@ -363,8 +373,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Storage events
     useEffect(() => {
         const handleInternalUpdate = () => {
-            const storedAddress = localStorage.getItem('arcium_wallet_address');
-            const storedMnemonic = localStorage.getItem('arcium_mnemonic');
+            const storedAddress = localStorage.getItem('privypay_wallet_address');
+            const storedMnemonic = localStorage.getItem('privypay_mnemonic');
 
             if (storedAddress && storedAddress !== address) {
                 console.log('[WalletContext] Wallet change detected via internal event');
@@ -413,6 +423,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             shieldedBalance,
             shieldedUsdcBalance,
             shieldedTokenBalances,
+            poolAddress,
             balance,
             usdcBalance,
             tokenBalances,

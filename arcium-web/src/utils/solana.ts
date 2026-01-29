@@ -29,7 +29,7 @@ const DEVNET_ENDPOINTS = [
 ].filter(url => url && url.length > 0);
 
 // Network mode storage key
-const NETWORK_MODE_KEY = 'arcium_network_mode';
+const NETWORK_MODE_KEY = 'privypay_network_mode';
 
 // Network mode type
 export type NetworkMode = 'mainnet' | 'devnet';
@@ -211,7 +211,7 @@ export const sendShielded = async (
     toAddress: string,
     amount: number
 ): Promise<{ signature: string, ghostId: string }> => {
-    console.log(`[Arcium] Shielding transaction for ${amount} SOL to ${toAddress}...`);
+    console.log(`[PrivyPay] Shielding transaction for ${amount} SOL to ${toAddress}...`);
 
     await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -221,7 +221,7 @@ export const sendShielded = async (
 
         return { signature, ghostId };
     } catch (error) {
-        console.error('[Arcium] Error in shielded transaction:', error);
+        console.error('[PrivyPay] Error in shielded transaction:', error);
         throw error;
     }
 };

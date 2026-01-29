@@ -1,19 +1,23 @@
 <!doctype html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arcium Shielded Wallet</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="./assets/index-f2dd1f9c.js"></script>
-    <link rel="stylesheet" href="./assets/index-20a6ae5a.css">
-  </head>
-  <body class="bg-obsidian font-display antialiased text-gray-200">
-    <div id="root"></div>
-    
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="data:image/png;base64,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" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrivyPay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script type="module" crossorigin src="./assets/index-dd68174c.js"></script>
+  <link rel="stylesheet" href="./assets/index-b3164e61.css">
+</head>
+
+<body class="bg-obsidian font-display antialiased text-gray-200">
+  <div id="root"></div>
+  
+</body>
+
 </html>

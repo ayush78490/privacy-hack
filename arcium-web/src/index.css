@@ -13,7 +13,8 @@
 @layer base {
   body {
     @apply bg-[#121212] font-display text-white antialiased;
-    min-height: max(884px, 100dvh);
+    height: 100dvh;
+    overflow: hidden;
   }
 }
 

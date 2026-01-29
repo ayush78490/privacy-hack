@@ -5,6 +5,7 @@ import * as api from '../utils/api';
 import * as txStore from '../utils/txStore';
 import { executeJupiterSwap, getTokenDecimals } from '../utils/jupiter';
 import bs58 from 'bs58';
+import { LOGO_PATH } from '../constants/logo';
 
 // Default token logos
 const TOKEN_LOGOS: Record<string, string> = {
@@ -281,7 +282,7 @@ const Swap: React.FC = () => {
     };
 
     return (
-        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+        <div className="bg-[#121212] text-white h-full font-display antialiased relative">
             <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -306,7 +307,7 @@ const Swap: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col flex-1 px-4 py-6 max-w-md mx-auto w-full relative z-10">
+            <div className="flex flex-col flex-1 px-4 py-6 pb-32 max-w-md mx-auto w-full relative z-10">
                 {/* Anonymous Mode Banner */}
                 {isAnonymousMode && (
                     <div className="bg-gradient-to-r from-[#FF611A]/20 to-amber-500/10 border border-[#FF611A]/30 rounded-xl p-3 mb-4 flex items-center gap-3">
@@ -637,7 +638,7 @@ const Swap: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                     <div className="bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#FF611A]/10 flex items-center justify-center">
-                            <img src="/privypay.png" alt="PrivyPay" className="w-12 h-12 object-contain" />
+                            <img src={LOGO_PATH} alt="PrivyPay" className="w-12 h-12 object-contain" />
                         </div>
 
                         <h3 className="text-2xl font-bold text-white mb-2">Swap Complete!</h3>

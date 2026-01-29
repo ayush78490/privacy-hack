@@ -15,7 +15,7 @@ export interface LocalTransaction {
     isPrivate: boolean;
 }
 
-const STORAGE_KEY = 'arcium_transactions';
+const STORAGE_KEY = 'privypay_transactions';
 const MAX_TRANSACTIONS = 50;
 
 // Get all transactions for an address

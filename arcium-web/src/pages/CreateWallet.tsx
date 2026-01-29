@@ -56,7 +56,7 @@ const CreateWallet: React.FC = () => {
     const words = mnemonic.split(' ');
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-obsidian text-white p-6 justify-between">
+        <div className="relative flex h-full w-full flex-col overflow-hidden bg-obsidian text-white p-6 justify-between">
             <div className="flex flex-col gap-6">
                 <header className="flex items-center gap-4">
                     <Link href="/">

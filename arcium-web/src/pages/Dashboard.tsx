@@ -4,6 +4,7 @@ import { useWallet } from '../context/WalletContext';
 import * as api from '../utils/api';
 import { Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { getConnection } from '../utils/solana';
+import { LOGO_PATH } from '../constants/logo';
 
 // Token logo URLs
 const TOKEN_LOGOS: Record<string, string> = {
@@ -91,7 +92,7 @@ const Dashboard: React.FC = () => {
 
             if (result.success && result.data) {
                 console.log('[Dashboard] Deposit tx created:', result.data);
-                
+
                 // Decode the unsigned transaction
                 const unsignedTxBase64 = result.data.unsigned_tx_base64;
                 if (!unsignedTxBase64) {
@@ -104,7 +105,7 @@ const Dashboard: React.FC = () => {
 
                 // Get connection and sign + send transaction
                 const connection = getConnection();
-                
+
                 console.log('[Dashboard] Signing and sending deposit transaction...');
                 const signature = await sendAndConfirmTransaction(
                     connection,
@@ -130,7 +131,7 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+        <div className="bg-[#121212] text-white h-full font-display antialiased relative">
             <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -140,7 +141,7 @@ const Dashboard: React.FC = () => {
                         <img alt="User profile" className="h-full w-full object-cover" src={userProfilePic} />
                     </Link>
                     <div className="flex items-center gap-2">
-                        <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain drop-shadow-[0_0_8px_rgba(255,97,26,0.5)]" />
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-5 h-5 object-contain drop-shadow-[0_0_8px_rgba(255,97,26,0.5)]" />
                         <div className="flex flex-col">
                             <div className="flex items-center gap-1.5">
                                 <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Shielded</h2>
@@ -159,7 +160,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 pt-6 max-w-md mx-auto w-full">
+            <main className="flex-1 px-4 pt-6 pb-32 max-w-md mx-auto w-full">
                 {/* Anonymous Mode Banner */}
                 {isAnonymousMode && (
                     <div className="mb-4 rounded-2xl bg-gradient-to-r from-[#FF611A]/20 to-amber-500/10 border border-[#FF611A]/30 p-4 flex items-center justify-between">
@@ -209,7 +210,7 @@ const Dashboard: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-br from-[#FF611A]/10 to-transparent"></div>
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-2">
-                                <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
+                                <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />
                                 <p className="text-[10px] text-[#FF611A] font-bold uppercase tracking-widest">Shielded</p>
                             </div>
                             <p className="text-white text-xl font-bold mb-1">
@@ -291,7 +292,7 @@ const Dashboard: React.FC = () => {
                     {apiConnected && (
                         <>
                             <p className="text-[10px] text-[#FF611A] uppercase tracking-widest px-1 mt-4 flex items-center gap-1">
-                                <img src="/privypay.png" alt="PrivyPay" className="w-3 h-3 object-contain" />
+                                <img src={LOGO_PATH} alt="PrivyPay" className="w-3 h-3 object-contain" />
                                 Shielded Balance
                             </p>
                             <AssetItem
@@ -330,7 +331,7 @@ const Dashboard: React.FC = () => {
 
                 <div className="mt-8 flex justify-center pb-6">
                     <div className="flex items-center gap-2 rounded-full bg-[#262626]/50 px-4 py-2 border border-white/5">
-                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />
                         <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Zero-Knowledge Proof Verified</span>
                     </div>
                 </div>
@@ -441,7 +442,7 @@ const AssetItem: React.FC<{
                 )}
                 {badge === 'shielded' && (
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#FF611A] flex items-center justify-center p-0.5">
-                        <img src="/privypay.png" alt="PrivyPay" className="w-full h-full object-contain brightness-0 invert" />
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-full h-full object-contain brightness-0 invert" />
                     </div>
                 )}
             </div>

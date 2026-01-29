@@ -19,8 +19,8 @@ const ImportWallet: React.FC = () => {
             const wallet = mnemonicToWallet(cleanMnemonic);
             const address = wallet.publicKey.toString();
 
-            localStorage.setItem('arcium_wallet_address', address);
-            localStorage.setItem('arcium_mnemonic', cleanMnemonic);
+            localStorage.setItem('privypay_wallet_address', address);
+            localStorage.setItem('privypay_mnemonic', cleanMnemonic);
 
             // Dispatch internal update
             window.dispatchEvent(new Event('walletUpdate'));
@@ -33,7 +33,7 @@ const ImportWallet: React.FC = () => {
     };
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-obsidian text-white p-6 justify-between">
+        <div className="relative flex h-full w-full flex-col overflow-hidden bg-obsidian text-white p-6 justify-between">
             <div className="flex flex-col gap-8">
                 <header className="flex items-center gap-4">
                     <Link href="/">
@@ -46,7 +46,7 @@ const ImportWallet: React.FC = () => {
 
                 <div className="flex flex-col gap-6">
                     <p className="text-zinc-400 text-sm leading-relaxed">
-                        Enter your 12-word secret recovery phrase to restore your Arcium wallet.
+                        Enter your 12-word secret recovery phrase to restore your PrivyPay wallet.
                     </p>
 
                     <div className="flex flex-col gap-4">

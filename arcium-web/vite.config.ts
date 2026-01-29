@@ -14,6 +14,9 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    assetsInlineLimit: 2000000, // Inline files up to 2MB as Base64 data URLs
+  },
   base: './',
   server: {
     host: '0.0.0.0',

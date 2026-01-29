@@ -4,6 +4,7 @@ import { useWallet } from '../context/WalletContext';
 import { executeAnonymousTransfer, estimateTotalAnonymousGas, estimateSplTokenGas } from '../utils/anonymousWallet';
 import { ShadowWireClient } from '@radr/shadowwire';
 import { sendSol, getConnection } from '../utils/solana';
+import * as txStore from '../utils/txStore';
 import {
     PublicKey,
     Transaction,
@@ -15,6 +16,7 @@ import {
     createTransferInstruction,
     getAccount,
 } from '@solana/spl-token';
+import { LOGO_PATH } from '../constants/logo';
 
 // Token configuration
 const SEND_TOKENS = [
@@ -45,6 +47,81 @@ interface TransactionPreview {
 }
 
 type AnonymousStep = 'idle' | 'estimating' | 'funding' | 'sending' | 'complete';
+
+// Helper function to parse transaction errors and return user-friendly messages
+const parseTransactionError = (error: any): { title: string; message: string; suggestion: string } => {
+    const errorStr = error?.message || error?.toString() || 'Unknown error';
+    const logsStr = error?.logs?.join(' ') || '';
+
+    // Check for insufficient lamports for ATA creation
+    if (errorStr.includes('insufficient funds') || logsStr.includes('insufficient funds')) {
+        const match = errorStr.match(/insufficient funds (\d+), need (\d+)/) ||
+            logsStr.match(/insufficient funds (\d+), need (\d+)/);
+        let details = '';
+        if (match) {
+            const have = (parseInt(match[1]) / 1e9).toFixed(6);
+            const need = (parseInt(match[2]) / 1e9).toFixed(6);
+            details = ` You have ${have} SOL but need ${need} SOL.`;
+        }
+        return {
+            title: 'Insufficient SOL for Fees',
+            message: `Your wallet doesn't have enough SOL to cover the transaction fees.${details}`,
+            suggestion: 'The recipient doesn\'t have a token account yet, so one needs to be created (~0.002 SOL). Please add more SOL to your wallet and try again.'
+        };
+    }
+
+    // Check for ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL errors
+    if (errorStr.includes('ATokenGPv') || logsStr.includes('ATokenGPv')) {
+        return {
+            title: 'Token Account Creation Failed',
+            message: 'Failed to create the recipient\'s token account.',
+            suggestion: 'This usually happens when you don\'t have enough SOL for rent. Please ensure you have at least 0.003 SOL in your wallet.'
+        };
+    }
+
+    // Check for simulation failed
+    if (errorStr.includes('Simulation failed') || errorStr.includes('simulation failed')) {
+        return {
+            title: 'Transaction Simulation Failed',
+            message: 'The transaction could not be completed.',
+            suggestion: 'Please check your balance and try again. If the issue persists, the network may be congested.'
+        };
+    }
+
+    // Check for insufficient balance
+    if (errorStr.includes('insufficient') || errorStr.includes('Insufficient')) {
+        return {
+            title: 'Insufficient Balance',
+            message: 'You don\'t have enough funds to complete this transaction.',
+            suggestion: 'Please check your balance and make sure you have enough for both the transfer amount and fees.'
+        };
+    }
+
+    // Check for invalid address
+    if (errorStr.includes('Invalid public key') || errorStr.includes('invalid address')) {
+        return {
+            title: 'Invalid Address',
+            message: 'The recipient address is not valid.',
+            suggestion: 'Please double-check the Solana address and try again.'
+        };
+    }
+
+    // Check for network errors
+    if (errorStr.includes('Network') || errorStr.includes('timeout') || errorStr.includes('ECONNREFUSED')) {
+        return {
+            title: 'Network Error',
+            message: 'Could not connect to the Solana network.',
+            suggestion: 'Please check your internet connection and try again.'
+        };
+    }
+
+    // Default error
+    return {
+        title: 'Transaction Failed',
+        message: errorStr.length > 100 ? errorStr.substring(0, 100) + '...' : errorStr,
+        suggestion: 'Please try again. If the issue persists, contact support.'
+    };
+};
 
 const Send: React.FC = () => {
     const {
@@ -284,12 +361,27 @@ const Send: React.FC = () => {
 
             setFundingTxHash(result.fundingTxHash);
             setTxHash(result.transferTxHash);
+
+            // Save to transaction history
+            if (address) {
+                txStore.addTransaction(address, {
+                    type: 'send',
+                    status: 'confirmed',
+                    fromToken: selectedToken,
+                    amount: txPreview.amount,
+                    recipient: txPreview.recipient,
+                    txHash: result.transferTxHash,
+                    isPrivate: true,
+                });
+            }
+
             setShowApprovalModal(false);
             setShowSuccessModal(true);
             refreshBalance();
         } catch (err: any) {
             console.error('[Send] Anonymous transfer failed:', err);
-            setErrorMessage(err.message || 'Anonymous transfer failed. Please try again.');
+            const parsed = parseTransactionError(err);
+            setErrorMessage(JSON.stringify(parsed));
             setShowApprovalModal(false);
             setShowErrorModal(true);
             setAnonymousStep('idle');
@@ -372,13 +464,27 @@ const Send: React.FC = () => {
                 signature = await sendAndConfirmTransaction(connection, transaction, [activeWallet]);
             }
 
+            // Save to transaction history (direct transfers are public)
+            if (activeAddress) {
+                txStore.addTransaction(activeAddress, {
+                    type: 'send',
+                    status: 'confirmed',
+                    fromToken: txPreview.token,
+                    amount: txPreview.amount,
+                    recipient: txPreview.recipient,
+                    txHash: signature,
+                    isPrivate: false,
+                });
+            }
+
             setTxHash(signature);
             setShowApprovalModal(false);
             setShowSuccessModal(true);
             refreshBalance();
         } catch (err: any) {
             console.error('[Send] Direct transfer failed:', err);
-            setErrorMessage(err.message || 'Direct transfer failed. Please try again.');
+            const parsed = parseTransactionError(err);
+            setErrorMessage(JSON.stringify(parsed));
             setShowApprovalModal(false);
             setShowErrorModal(true);
         } finally {
@@ -433,12 +539,34 @@ const Send: React.FC = () => {
                 result?.tx_signature || result?.signature || result?.txSignature;
 
             setTxHash(txSig || (typeof result === 'string' ? result : JSON.stringify(result)));
+
+            // Save to transaction history (private/ShadowWire transfers)
+            const activeAddr = getActiveAddress();
+            if (activeAddr) {
+                console.log('[Send] Saving private transaction to txStore:', {
+                    address: activeAddr,
+                    amount: txPreview.amount,
+                    recipient: txPreview.recipient,
+                    txHash: txSig,
+                });
+                txStore.addTransaction(activeAddr, {
+                    type: 'send',
+                    status: 'confirmed',
+                    fromToken: txPreview.token,
+                    amount: txPreview.amount,
+                    recipient: txPreview.recipient,
+                    txHash: txSig || 'shadowwire-tx',
+                    isPrivate: true,
+                });
+            }
+
             setShowApprovalModal(false);
             setShowSuccessModal(true);
             refreshBalance();
         } catch (err: any) {
             console.error('[Send] Transaction failed:', err);
-            setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
+            const parsed = parseTransactionError(err);
+            setErrorMessage(JSON.stringify(parsed));
             setShowApprovalModal(false);
             setShowErrorModal(true);
         } finally {
@@ -458,7 +586,7 @@ const Send: React.FC = () => {
     };
 
     return (
-        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+        <div className="bg-[#121212] text-white h-full font-display antialiased relative">
             <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -476,12 +604,12 @@ const Send: React.FC = () => {
                 </div>
                 <div className="flex w-12 items-center justify-end">
                     <div className={`flex items-center justify-center rounded-full h-10 w-10 backdrop-blur border border-white/5 shadow-inner ${apiConnected ? 'bg-[#FF611A]/10 text-[#FF611A]' : 'bg-white/5 text-white/60'}`}>
-                        <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain" />
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-5 h-5 object-contain" />
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col px-6 pt-4 pb-8 relative z-10 max-w-md mx-auto w-full">
+            <main className="flex-1 flex flex-col px-6 pt-4 pb-32 relative z-10 max-w-md mx-auto w-full">
                 {/* Anonymous Mode Banner */}
                 {/* {isAnonymousMode && (
                     <div className="bg-gradient-to-r from-[#FF611A]/20 to-amber-500/10 border border-[#FF611A]/30 rounded-xl p-3 mb-4 flex items-center gap-3">
@@ -793,7 +921,7 @@ const Send: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                     <div className="bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
                         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#FF611A]/10 flex items-center justify-center">
-                            <img src="/privypay.png" alt="PrivyPay" className="w-12 h-12 object-contain" />
+                            <img src={LOGO_PATH} alt="PrivyPay" className="w-12 h-12 object-contain" />
                         </div>
 
                         <h3 className="text-2xl font-bold text-white mb-2">
@@ -840,48 +968,63 @@ const Send: React.FC = () => {
             )}
 
             {/* Error Modal */}
-            {showErrorModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-[#1a1a1a] border border-red-500/20 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
-                        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-red-500 text-[48px]">error</span>
+            {showErrorModal && (() => {
+                // Parse the error message if it's in JSON format
+                let parsedError = { title: 'Transaction Failed', message: errorMessage, suggestion: '' };
+                try {
+                    if (errorMessage.startsWith('{')) {
+                        parsedError = JSON.parse(errorMessage);
+                    }
+                } catch {
+                    // Keep default if parsing fails
+                }
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <div className="bg-[#1a1a1a] border border-red-500/20 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-red-500 text-[48px]">error</span>
+                            </div>
+
+                            <h3 className="text-2xl font-bold text-white mb-2">{parsedError.title}</h3>
+                            <p className="text-slate-400 text-sm mb-4">
+                                {parsedError.message}
+                            </p>
+
+                            {parsedError.suggestion && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 text-left">
+                                    <div className="flex items-start gap-2">
+                                        <span className="material-symbols-outlined text-amber-400 text-[18px] flex-shrink-0 mt-0.5">lightbulb</span>
+                                        <p className="text-amber-300 text-xs">{parsedError.suggestion}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={() => {
+                                    setShowErrorModal(false);
+                                    setErrorMessage('');
+                                }}
+                                className="w-full py-4 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors mb-3"
+                            >
+                                Try Again
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setShowErrorModal(false);
+                                    setErrorMessage('');
+                                    setAmount('0');
+                                    setRecipient('');
+                                    setLocation('/dashboard');
+                                }}
+                                className="w-full py-3 rounded-xl bg-transparent text-slate-400 font-medium hover:text-white transition-colors"
+                            >
+                                Go Back to Dashboard
+                            </button>
                         </div>
-
-                        <h3 className="text-2xl font-bold text-white mb-2">Transaction Failed</h3>
-                        <p className="text-slate-400 text-sm mb-6">
-                            Something went wrong while processing your transaction.
-                        </p>
-
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-left">
-                            <p className="text-[10px] text-red-400 uppercase tracking-widest mb-1">Error Details</p>
-                            <p className="text-red-300 text-sm break-all">{errorMessage}</p>
-                        </div>
-
-                        <button
-                            onClick={() => {
-                                setShowErrorModal(false);
-                                setErrorMessage('');
-                            }}
-                            className="w-full py-4 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors mb-3"
-                        >
-                            Try Again
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                setShowErrorModal(false);
-                                setErrorMessage('');
-                                setAmount('0');
-                                setRecipient('');
-                                setLocation('/dashboard');
-                            }}
-                            className="w-full py-3 rounded-xl bg-transparent text-slate-400 font-medium hover:text-white transition-colors"
-                        >
-                            Go Back to Dashboard
-                        </button>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };

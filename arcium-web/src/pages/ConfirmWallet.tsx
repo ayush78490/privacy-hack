@@ -33,8 +33,8 @@ const ConfirmWallet: React.FC = () => {
                 const address = wallet.publicKey.toString();
 
                 // Save to local storage
-                localStorage.setItem('arcium_wallet_address', address);
-                localStorage.setItem('arcium_mnemonic', mnemonic);
+                localStorage.setItem('privypay_wallet_address', address);
+                localStorage.setItem('privypay_mnemonic', mnemonic);
 
                 // Dispatch internal update
                 window.dispatchEvent(new Event('walletUpdate'));
@@ -50,7 +50,7 @@ const ConfirmWallet: React.FC = () => {
     };
 
     return (
-        <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-obsidian text-white p-6 justify-between">
+        <div className="relative flex h-full w-full flex-col overflow-hidden bg-obsidian text-white p-6 justify-between">
             <div className="flex flex-col gap-8">
                 <header className="flex items-center gap-4">
                     <Link href="/create-wallet">

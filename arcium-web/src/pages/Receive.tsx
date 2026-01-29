@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { QRCodeSVG } from 'qrcode.react';
 import { useWallet } from '../context/WalletContext';
+import { LOGO_PATH } from '../constants/logo';
 
 interface ShieldedReceiveMetadata {
     type: 'shielded';
@@ -33,7 +34,7 @@ const Receive: React.FC = () => {
         if (label) {
             params.append('label', label);
         }
-        params.append('message', 'Payment via Arcium Wallet');
+        params.append('message', 'Payment via PrivyPay Wallet');
 
         const queryString = params.toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
@@ -96,7 +97,7 @@ const Receive: React.FC = () => {
     };
 
     return (
-        <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 bg-[#121212]">
+        <div className="relative flex h-full w-full flex-col overflow-x-hidden bg-[#121212]">
             {/* Background */}
             <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
@@ -111,14 +112,14 @@ const Receive: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 pt-6 max-w-md mx-auto w-full">
+            <main className="flex-1 px-4 pt-6 pb-32 max-w-md mx-auto w-full">
                 {/* Receive Type Toggle */}
                 <div className="flex items-center justify-center gap-2 mb-6">
                     <button
                         onClick={() => setReceiveType('shielded')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all ${receiveType === 'shielded' ? 'bg-[#FF611A] text-white shadow-[0_0_20px_rgba(255,97,26,0.3)]' : 'bg-[#1a1a1a] text-slate-400 hover:bg-[#262626]'}`}
                     >
-                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />
                         Shielded
                     </button>
                     <button
@@ -134,7 +135,7 @@ const Receive: React.FC = () => {
                 <div className={`mb-6 rounded-2xl p-4 border ${receiveType === 'shielded' ? 'bg-[#FF611A]/5 border-[#FF611A]/20' : 'bg-white/5 border-white/10'}`}>
                     <div className="flex items-start gap-3">
                         {receiveType === 'shielded' ? (
-                            <img src="/privypay.png" alt="PrivyPay" className="w-6 h-6 object-contain" />
+                            <img src={LOGO_PATH} alt="PrivyPay" className="w-6 h-6 object-contain" />
                         ) : (
                             <span className={`material-symbols-outlined text-[24px] text-white/60 filled`}>info</span>
                         )}
@@ -156,14 +157,14 @@ const Receive: React.FC = () => {
                 <div className="glass-card rounded-3xl p-6 mb-6 border border-white/5">
                     <div className="flex flex-col items-center">
                         {/* QR Code */}
-                        <div className="relative bg-white rounded-2xl p-4 mb-6 shadow-lg">
+                        <div className="relative  rounded-2xl p-4 mb-4 bg-[#ff611a]/20 shadow-[0_0_30px_rgba(255,97,26,0.3)]">
                             {displayAddress ? (
                                 <QRCodeSVG
                                     value={getQRData()}
                                     size={200}
                                     level="H"
                                     includeMargin={false}
-                                    fgColor="#ffffff"
+                                    fgColor="rgba(223, 111, 59, 0.97)"
                                     bgColor="#121212"
                                 />
                             ) : (
@@ -174,9 +175,9 @@ const Receive: React.FC = () => {
 
                             {/* Center logo overlay */}
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${receiveType === 'shielded' ? 'bg-[#FF611A]' : 'bg-[#121212]'}`}>
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-lg ${receiveType === 'shielded' ? 'bg-[#121212]' : 'bg-[#121212]'}`}>
                                     {receiveType === 'shielded' ? (
-                                        <img src="/privypay.png" alt="PrivyPay" className="w-6 h-6 object-contain brightness-0 invert" />
+                                        <img src={LOGO_PATH} alt="PrivyPay" className="w-6 h-6 object-contain" />
                                     ) : (
                                         <span className="material-symbols-outlined text-white text-[24px] filled">account_balance_wallet</span>
                                     )}

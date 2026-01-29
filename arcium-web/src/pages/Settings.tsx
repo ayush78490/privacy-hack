@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useWallet } from '../context/WalletContext';
 import { getWalletHistory, TempWalletHistoryEntry, getPrivateKeyBase58 } from '../utils/anonymousWallet';
+import { LOGO_PATH } from '../constants/logo';
 
 const Settings: React.FC = () => {
     const {
@@ -63,12 +64,12 @@ const Settings: React.FC = () => {
     const currentAnonPrivateKey = anonymousWallet ? getPrivateKeyBase58(anonymousWallet) : null;
 
     return (
-        <div className="bg-[#121212] text-white min-h-screen font-display antialiased relative pb-24">
+        <div className="bg-[#121212] text-white h-full font-display antialiased relative">
             <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="fixed bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#FF611A]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
             <header className="flex-none sticky top-0 z-20 glass-panel border-b-0">
-                <div className="flex items-center px-4 pt-12 pb-4 max-w-md mx-auto">
+                <div className="flex items-center px-4 pt-6 pb-4 max-w-md mx-auto">
                     <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
@@ -76,7 +77,7 @@ const Settings: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 px-4 max-w-md mx-auto w-full">
+            <main className="flex-1 relative z-10 px-4 pb-32 max-w-md mx-auto w-full">
                 {/* Account Section */}
                 <div className="mb-6">
                     <h3 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3 px-1">Account</h3>
@@ -277,18 +278,7 @@ const Settings: React.FC = () => {
                             <span className="text-[#FF611A] text-sm font-medium">5 min</span>
                         </div>
 
-                        <div className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-slate-400 text-[20px]">fingerprint</span>
-                                <div className="flex flex-col items-start">
-                                    <span className="text-white text-sm font-medium">Biometric Auth</span>
-                                    <span className="text-slate-500 text-[10px]">Use fingerprint or Face ID</span>
-                                </div>
-                            </div>
-                            <div className="w-11 h-6 bg-white/10 rounded-full relative cursor-pointer">
-                                <div className="absolute left-1 top-1 w-4 h-4 bg-slate-400 rounded-full transition-all"></div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
 
@@ -310,8 +300,8 @@ const Settings: React.FC = () => {
                             <button
                                 onClick={handleNetworkToggle}
                                 className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${networkMode === 'mainnet'
-                                        ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
-                                        : 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
+                                    ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                                    : 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20'
                                     }`}
                             >
                                 {networkMode === 'mainnet' ? 'Mainnet' : 'Devnet'}
@@ -333,7 +323,7 @@ const Settings: React.FC = () => {
 
                         <div className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain" />
+                                <img src={LOGO_PATH} alt="PrivyPay" className="w-5 h-5 object-contain" />
                                 <div className="flex flex-col items-start">
                                     <span className="text-white text-sm font-medium">ShadowWire API</span>
                                     <span className="text-slate-500 text-[10px]">Privacy layer status</span>
@@ -407,18 +397,10 @@ const Settings: React.FC = () => {
                             <span className="text-slate-400 text-sm">${solPrice.toFixed(2)}</span>
                         </div>
 
-                        <a href="https://arcium.com" target="_blank" rel="noopener noreferrer" className="p-4 flex items-center justify-between border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <a href="https://x.com/privypay" target="_blank" rel="noopener noreferrer" className="p-4 flex items-center justify-between border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                             <div className="flex items-center gap-3">
                                 <span className="material-symbols-outlined text-slate-400 text-[20px]">help</span>
                                 <span className="text-white text-sm font-medium">Help & Support</span>
-                            </div>
-                            <span className="material-symbols-outlined text-slate-500 text-[20px]">open_in_new</span>
-                        </a>
-
-                        <a href="https://arcium.com/terms" target="_blank" rel="noopener noreferrer" className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                            <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-slate-400 text-[20px]">description</span>
-                                <span className="text-white text-sm font-medium">Terms of Service</span>
                             </div>
                             <span className="material-symbols-outlined text-slate-500 text-[20px]">open_in_new</span>
                         </a>
@@ -439,8 +421,8 @@ const Settings: React.FC = () => {
                 {/* Footer */}
                 <div className="flex justify-center mb-4">
                     <div className="flex items-center gap-2 rounded-full bg-[#262626]/50 px-4 py-2 border border-white/5">
-                        <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
-                        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Secured by Arcium</span>
+                        <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Secured by PrivyPay</span>
                     </div>
                 </div>
             </main>

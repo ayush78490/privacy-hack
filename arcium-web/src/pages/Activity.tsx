@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { useWallet } from '../context/WalletContext';
 import * as txStore from '../utils/txStore';
 import { fetchTransactionHistory, OnChainTransaction } from '../utils/solana';
+import { LOGO_PATH } from '../constants/logo';
 
 const Activity: React.FC = () => {
     const { address } = useWallet();
@@ -21,15 +22,16 @@ const Activity: React.FC = () => {
 
             setLoading(true);
 
-            // Load local transactions
+            // Load local transactions (includes saved private transfers)
             const localTxs = txStore.getTransactions(address);
             setLocalTransactions(localTxs);
+            console.log('[Activity] Loaded local transactions:', localTxs.length);
 
-            // Fetch on-chain transactions
+            // Fetch on-chain transactions for main wallet (normal/public transfers)
             try {
                 console.log('[Activity] Fetching on-chain transactions...');
                 const onChainTxs = await fetchTransactionHistory(address, 20);
-                console.log('[Activity] Found transactions:', onChainTxs.length);
+                console.log('[Activity] Found on-chain transactions:', onChainTxs.length);
                 setOnChainTransactions(onChainTxs);
             } catch (err) {
                 console.error('[Activity] Failed to fetch on-chain transactions:', err);
@@ -46,9 +48,12 @@ const Activity: React.FC = () => {
         if (!address) return;
 
         setLoading(true);
+
+        // Reload local transactions
         const localTxs = txStore.getTransactions(address);
         setLocalTransactions(localTxs);
 
+        // Refresh on-chain transactions
         try {
             const onChainTxs = await fetchTransactionHistory(address, 20);
             setOnChainTransactions(onChainTxs);
@@ -76,10 +81,12 @@ const Activity: React.FC = () => {
         return 'Just now';
     };
 
-    // Get private transactions (from local store, marked as private)
-    const privateTransactions = localTransactions.filter(tx => tx.isPrivate);
+    // Get private transactions (only from locally saved data - these are user's actual private transfers)
+    const privateTransactions = localTransactions
+        .filter(tx => tx.isPrivate)
+        .sort((a, b) => b.timestamp - a.timestamp);
 
-    // Get normal transactions (on-chain only)
+    // Get normal transactions (on-chain public transfers)
     const normalTransactions = onChainTransactions.map(tx => ({
         id: tx.signature,
         type: 'send' as const,
@@ -98,15 +105,16 @@ const Activity: React.FC = () => {
             ? normalTransactions
             : [...privateTransactions, ...normalTransactions].sort((a, b) => b.timestamp - a.timestamp);
 
+
     return (
-        <div className="bg-[#121212] min-h-screen flex flex-col overflow-hidden text-gray-200 relative pb-24">
+        <div className="bg-[#121212] flex flex-col text-gray-200 relative">
             <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
                 <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#FF611A]/10 rounded-full blur-[120px]"></div>
                 <div className="absolute bottom-[10%] right-[-10%] w-[70%] h-[70%] bg-[#FF611A]/5 rounded-full blur-[120px]"></div>
             </div>
 
             <header className="flex-none sticky top-0 z-20 backdrop-blur-xl bg-[#121212]/60 border-b border-white/5">
-                <div className="flex items-center px-4 pt-12 pb-4 justify-between max-w-md mx-auto">
+                <div className="flex items-center px-4 pt-6 pb-4 justify-between max-w-md mx-auto">
                     <Link href="/dashboard" className="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </Link>
@@ -125,7 +133,7 @@ const Activity: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto no-scrollbar pb-24 relative z-10 max-w-md mx-auto w-full">
+            <main className="flex-1 relative z-10 max-w-md mx-auto w-full pb-32">
                 {/* Tab Selector */}
                 <div className="px-4 py-4">
                     <div className="flex bg-[#1a1a1a] rounded-xl p-1 border border-white/10">
@@ -146,7 +154,7 @@ const Activity: React.FC = () => {
                             onClick={() => setActiveTab('private')}
                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center justify-center gap-1 ${activeTab === 'private' ? 'bg-[#FF611A] text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                         >
-                            <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />
+                            <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />
                             Private
                         </button>
                     </div>
@@ -158,7 +166,7 @@ const Activity: React.FC = () => {
                         <span className={`material-symbols-outlined text-[16px] ${activeTab === 'private' ? 'hidden' : 'filled'} ${activeTab === 'normal' ? 'text-green-400' : 'text-slate-400'}`}>
                             {activeTab === 'normal' ? 'public' : 'history'}
                         </span>
-                        {activeTab === 'private' && <img src="/privypay.png" alt="PrivyPay" className="w-4 h-4 object-contain" />}
+                        {activeTab === 'private' && <img src={LOGO_PATH} alt="PrivyPay" className="w-4 h-4 object-contain" />}
                         <p className={`text-[11px] font-semibold tracking-widest uppercase ${activeTab === 'private' ? 'text-[#FF611A]' : activeTab === 'normal' ? 'text-green-400' : 'text-slate-400'}`}>
                             {activeTab === 'private' ? `${privateTransactions.length} Private` : activeTab === 'normal' ? `${normalTransactions.length} On-Chain` : `${displayTransactions.length} Total`}
                         </p>
@@ -191,7 +199,7 @@ const Activity: React.FC = () => {
                                     <div className="flex items-center gap-3">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.isPrivate ? 'bg-[#FF611A]/20' : 'bg-green-500/10'}`}>
                                             {tx.isPrivate ? (
-                                                <img src="/privypay.png" alt="PrivyPay" className="w-5 h-5 object-contain" />
+                                                <img src={LOGO_PATH} alt="PrivyPay" className="w-5 h-5 object-contain" />
                                             ) : (
                                                 <span className="material-symbols-outlined text-green-400">swap_horiz</span>
                                             )}
@@ -232,7 +240,7 @@ const Activity: React.FC = () => {
                     <div className="flex flex-col items-center justify-center py-16 px-4">
                         <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${activeTab === 'private' ? 'bg-[#FF611A]/10' : 'bg-[#1a1a1a]'}`}>
                             {activeTab === 'private' ? (
-                                <img src="/privypay.png" alt="PrivyPay" className="w-9 h-9 object-contain" />
+                                <img src={LOGO_PATH} alt="PrivyPay" className="w-9 h-9 object-contain" />
                             ) : (
                                 <span className="material-symbols-outlined text-[36px] text-slate-500">receipt_long</span>
                             )}

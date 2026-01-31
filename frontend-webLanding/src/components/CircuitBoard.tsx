@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Bitcoin, CircleDollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 

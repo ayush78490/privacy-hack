@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight, LayoutGrid } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CircuitBoard from './components/CircuitBoard';

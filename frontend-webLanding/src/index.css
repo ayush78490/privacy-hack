@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .text-shadow-glow {
+    text-shadow: 0 0 20px rgba(255, 97, 26, 0.5);
+  }
+
+  /* Orbitron font settings as requested */
+  .font-orbitron {
+    font-family: "Orbitron", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+  }
+}
+
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+.glow-privy {
+  box-shadow: 0 0 20px rgba(255, 97, 26, 0.5);
+}
+
+/* Dropping Text Animation */
+.dropping-texts {
+  display: inline-block;
+  width: 250px;
+  /* Increased width for Orbitron */
+  text-align: left;
+  height: 50px;
+  vertical-align: -2px;
+  margin-bottom: 1rem;
+}
+
+.dropping-texts>div {
+  font-size: 0px;
+  opacity: 0;
+  margin-left: -30px;
+  position: absolute;
+  font-weight: 700;
+  color: #FF611A;
+  /* Privy Orange */
+  text-shadow: 0 0 10px rgba(255, 97, 26, 0.5);
+}
+
+.dropping-texts>div:nth-child(1) {
+  animation: roll 5s linear infinite 0s;
+}
+
+.dropping-texts>div:nth-child(2) {
+  animation: roll 5s linear infinite 1s;
+}
+
+.dropping-texts>div:nth-child(3) {
+  animation: roll 5s linear infinite 2s;
+}
+
+.dropping-texts>div:nth-child(4) {
+  animation: roll2 5s linear infinite 3s;
+}
+
+@keyframes roll {
+  0% {
+    font-size: 0px;
+    opacity: 0;
+    margin-left: -30px;
+    margin-top: 0px;
+    transform: rotate(-25deg);
+  }
+
+  3% {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+
+  5% {
+    font-size: 36px;
+    opacity: 1;
+    margin-left: 0px;
+    margin-top: 0px;
+  }
+
+  20% {
+    font-size: 36px;
+    opacity: 1;
+    margin-left: 0px;
+    margin-top: 0px;
+    transform: rotate(0deg);
+  }
+
+  27% {
+    font-size: 0px;
+    opacity: 0.5;
+    margin-left: 20px;
+    margin-top: 100px;
+  }
+
+  100% {
+    font-size: 0px;
+    opacity: 0;
+    margin-left: -30px;
+    margin-top: 0px;
+    transform: rotate(15deg);
+  }
+}
+
+@keyframes roll2 {
+  0% {
+    font-size: 0px;
+    opacity: 0;
+    margin-left: -30px;
+    margin-top: 0px;
+    transform: rotate(-25deg);
+  }
+
+  3% {
+    opacity: 1;
+    transform: rotate(0deg);
+  }
+
+  5% {
+    font-size: 36px;
+    opacity: 1;
+    margin-left: 0px;
+    margin-top: 0px;
+  }
+
+  30% {
+    font-size: 36px;
+    opacity: 1;
+    margin-left: 0px;
+    margin-top: 0px;
+    transform: rotate(0deg);
+  }
+
+  37% {
+    font-size: 1500px;
+    opacity: 0;
+    margin-left: -1000px;
+    margin-top: -800px;
+  }
+
+  100% {
+    font-size: 0px;
+    opacity: 0;
+    margin-left: -30px;
+    margin-top: 0px;
+    transform: rotate(15deg);
+  }
+}

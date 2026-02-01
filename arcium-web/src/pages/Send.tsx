@@ -5,6 +5,7 @@ import { executeAnonymousTransfer, estimateTotalAnonymousGas, estimateSplTokenGa
 import { ShadowWireClient } from '@radr/shadowwire';
 import { sendSol, getConnection } from '../utils/solana';
 import * as txStore from '../utils/txStore';
+import { executeTransfer } from '../utils/api';
 import {
     PublicKey,
     Transaction,
@@ -47,6 +48,18 @@ interface TransactionPreview {
 }
 
 type AnonymousStep = 'idle' | 'estimating' | 'funding' | 'sending' | 'complete';
+
+// Detect if running in Android WebView (WASM fetch doesn't work with file:// protocol)
+const isAndroidWebView = (): boolean => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    // Android WebView typically has 'wv' in user agent or Version/X.X Chrome/X
+    const isAndroid = ua.includes('Android');
+    const isWebView = ua.includes('wv') || (ua.includes('Version/') && ua.includes('Chrome/'));
+    // Also check if loaded from file:// protocol (bundled assets)
+    const isFileProtocol = window.location.protocol === 'file:';
+    return isAndroid && (isWebView || isFileProtocol);
+};
 
 // Helper function to parse transaction errors and return user-friendly messages
 const parseTransactionError = (error: any): { title: string; message: string; suggestion: string } => {
@@ -523,22 +536,77 @@ const Send: React.FC = () => {
                 return;
             }
 
-            // Execute transfer directly via ShadowWire SDK (no backend /api/transfer).
-            const result: any = await shadowWireClient.transfer({
-                sender: activeAddress,
-                recipient: txPreview.recipient,
-                amount: amountNumber,
-                token: txPreview.token as any,
-                type: txPreview.type as 'internal' | 'external',
-                wallet: {
-                    signMessage: async (bytes: Uint8Array) => signMessageBytes(bytes),
-                },
-            });
+            let txSig: string | undefined;
 
-            const txSig: string | undefined =
-                result?.tx_signature || result?.signature || result?.txSignature;
+            // On Android WebView, use backend API to avoid WASM loading issues
+            // Backend generates ZK proof server-side, we just need to provide signature
+            if (isAndroidWebView()) {
+                console.log('[Send] Android WebView detected - using backend API for private transfer');
 
-            setTxHash(txSig || (typeof result === 'string' ? result : JSON.stringify(result)));
+                // Generate signature for authentication (same format as SDK)
+                const transferType = txPreview.type === 'internal' ? 'internal_transfer' : 'external_transfer';
+                const nonce = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                const timestamp = Math.floor(Date.now() / 1000);
+                const signatureMessage = `shadowpay:${transferType}:${nonce}:${timestamp}`;
+
+                // Sign the message
+                const encoder = new TextEncoder();
+                const messageBytes = encoder.encode(signatureMessage);
+                const signatureBytes = await signMessageBytes(messageBytes);
+
+                // Convert to base58 (same as SDK)
+                const bs58Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+                let signatureBase58 = '';
+                const bytes = Array.from(signatureBytes);
+                let num = BigInt(0);
+                for (const byte of bytes) {
+                    num = num * BigInt(256) + BigInt(byte);
+                }
+                while (num > 0) {
+                    signatureBase58 = bs58Chars[Number(num % BigInt(58))] + signatureBase58;
+                    num = num / BigInt(58);
+                }
+                // Handle leading zeros
+                for (const byte of bytes) {
+                    if (byte === 0) signatureBase58 = '1' + signatureBase58;
+                    else break;
+                }
+
+                console.log('[Send] Signature generated for backend API');
+
+                const apiResult = await executeTransfer({
+                    sender: activeAddress,
+                    recipient: txPreview.recipient,
+                    amount: amountNumber,
+                    token: txPreview.token,
+                    type: txPreview.type as 'internal' | 'external',
+                    sender_signature: signatureBase58,
+                });
+
+                if (!apiResult.success) {
+                    throw new Error(apiResult.error || 'Transfer failed');
+                }
+
+                txSig = apiResult.data?.tx_signature;
+            } else {
+                // Execute transfer directly via ShadowWire SDK (browser with WASM support)
+                console.log('[Send] Browser detected - using client-side SDK for private transfer');
+                const result: any = await shadowWireClient.transfer({
+                    sender: activeAddress,
+                    recipient: txPreview.recipient,
+                    amount: amountNumber,
+                    token: txPreview.token as any,
+                    type: txPreview.type as 'internal' | 'external',
+                    wallet: {
+                        signMessage: async (bytes: Uint8Array) => signMessageBytes(bytes),
+                    },
+                });
+
+                txSig = result?.tx_signature || result?.signature || result?.txSignature ||
+                    (typeof result === 'string' ? result : undefined);
+            }
+
+            setTxHash(txSig || 'shadowwire-tx');
 
             // Save to transaction history (private/ShadowWire transfers)
             const activeAddr = getActiveAddress();

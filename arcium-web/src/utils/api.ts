@@ -165,6 +165,7 @@ export interface TransferRequest {
     amount: number | string;
     token?: string;
     type?: 'internal' | 'external';
+    sender_signature?: string; // Base58 encoded signature for Android transfers
     zk_auth?: SignatureAuth;
     transfer_auth?: SignatureAuth;
 }
@@ -192,11 +193,11 @@ export async function executeTransfer(request: TransferRequest): Promise<ApiResp
             errorType: 'ValidationError'
         };
     }
-    
+
     const body = JSON.stringify(request);
     console.log('[API] executeTransfer request body:', body);
     console.log('[API] executeTransfer parsed amount:', request.amount, typeof request.amount);
-    
+
     return apiCall<TransferResponse>('/api/transfer', {
         method: 'POST',
         body: body,

@@ -78,3 +78,86 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Glass page effect - for web builds only */
+.glass-page {
+  background: linear-gradient(135deg, rgba(18, 18, 18, 0.85) 0%, rgba(26, 26, 26, 0.9) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Glass container wrapper - dark background with subtle pattern */
+.glass-background {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(255, 97, 26, 0.04) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 80%, rgba(255, 97, 26, 0.03) 0%, transparent 40%),
+    linear-gradient(180deg, #050508 0%, #0a0a10 50%, #050508 100%);
+  z-index: 0;
+}
+
+/* Side decoration lines */
+.glass-side-line {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 250px;
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 97, 26, 0.4) 50%,
+      transparent 100%);
+  z-index: 1;
+}
+
+.glass-side-line.left {
+  left: 8%;
+}
+
+.glass-side-line.right {
+  right: 8%;
+}
+
+/* Centered glass card container */
+.glass-card-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The actual glass card */
+.glass-card-wrapper {
+  background: linear-gradient(160deg,
+      rgba(25, 28, 40, 0.9) 0%,
+      rgba(18, 20, 30, 0.95) 50%,
+      rgba(22, 25, 35, 0.9) 100%);
+  backdrop-filter: blur(32px) saturate(140%);
+  -webkit-backdrop-filter: blur(32px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  box-shadow:
+    0 0 80px rgba(0, 0, 0, 0.6),
+    0 0 120px rgba(255, 97, 26, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Glass card inner content */
+.glass-card-content {
+  flex: 1;
+  overflow-y: auto;
+}

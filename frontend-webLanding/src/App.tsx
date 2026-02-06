@@ -76,18 +76,21 @@ const LandingPage = () => {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="flex items-center gap-4 mb-24"
         >
-          <button className="flex items-center gap-3 bg-privy bg-white/5 hover:bg-privy-light text-white pl-6 pr-2 py-2 border border-white/10 backdrop-blur-sm rounded-xl font-semibold text-sm transition-all shadow-[0_0_25px_rgba(255,97,26,0.25)] hover:shadow-[0_0_35px_rgba(255,97,26,0.4)] group">
-            Try Free
+          <a href="https://privy-pay.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-privy bg-white/5 hover:bg-privy-light text-white pl-6 pr-2 py-2 border border-white/10 backdrop-blur-sm rounded-xl font-semibold text-sm transition-all shadow-[0_0_25px_rgba(255,97,26,0.25)] hover:shadow-[0_0_35px_rgba(255,97,26,0.4)] group no-underline">
+            Try Now
             <div className=" p-1.5 rounded-lg group-hover:scale-105 transition-transform">
               <ChevronRight className="w-4 h-4 text-privy" strokeWidth={3} />
             </div>
-          </button>
+          </a>
 
-          <button className="flex items-center gap-3 bg-white/5 hover:bg-white/10 text-privy pl-6 pr-2 py-2 rounded-xl font-semibold text-sm border border-white/10 backdrop-blur-sm transition-all group">
-            EXTENSION
-            <div className="p-1.5 rounded-lg group-hover:bg-white/20 transition-colors">
-              <LayoutGrid className="w-4 h-4 text-privy" />
+          <button className="flex flex-col items-center gap-1 bg-white/5 hover:bg-white/10 text-privy pl-6 pr-6 py-2 rounded-xl font-semibold text-sm border border-white/10 backdrop-blur-sm transition-all group">
+            <div className="flex items-center gap-3">
+              EXTENSION
+              <div className="p-1.5 rounded-lg group-hover:bg-white/20 transition-colors">
+                <LayoutGrid className="w-4 h-4 text-privy" />
+              </div>
             </div>
+            <span className="text-gray-500 text-xs font-normal">Coming Soon ...</span>
           </button>
         </motion.div>
       </main>

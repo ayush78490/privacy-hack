@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Route, Switch, Redirect } from 'wouter';
 import Layout from './components/Layout';
+import SplashScreen from './components/SplashScreen';
 import Welcome from './pages/Welcome';
 import Dashboard from './pages/Dashboard';
 import Activity from './pages/Activity';
@@ -15,6 +17,25 @@ import Settings from './pages/Settings';
 import { WalletProvider } from './context/WalletContext';
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Check if we've already shown splash this session
+    const hasShownSplash = sessionStorage.getItem('splash_shown');
+    if (hasShownSplash) {
+      setShowSplash(false);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('splash_shown', 'true');
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
   return (
     <Layout>
       <WalletProvider>
@@ -41,3 +62,4 @@ function App() {
 }
 
 export default App;
+
